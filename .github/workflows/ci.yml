@@ -58,8 +58,8 @@ jobs:
         run: npx prisma generate
       - name: Run one-off database migrations
         run: npx prisma migrate deploy
-      - name: Run integration tests
-        run: pnpm run test
       - name: Build production bundle
         run: pnpm run build
+      - name: Run integration tests
+        run: pnpm run test
 
