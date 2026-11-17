@@ -1,0 +1,56 @@
+==========================================================
+Module 04: Auth, Ownership & Rate Limit Verification Suite
+Timestamp: 2026-11-13T08:33:12.863Z
+==========================================================
+
+[SETUP] Spawning NestJS API from: D:\Knack labs\api\dist\main.js
+[SETUP] API server is live and healthy.
+
+--- Baseline: Health Endpoint ---
+[PASS] GET /health returns 200 { ok: true } — status=200, body={"ok":true}
+
+--- SECTION A: Authentication Tests ---
+[PASS] GET /links without token returns 401 — status=401
+[PASS] POST /links without token returns 401 — status=401
+[PASS] PATCH /links/:id without token returns 401 — status=401
+[PASS] DELETE /links/:id without token returns 401 — status=401
+[PASS] GET /links with non-Bearer auth returns 401 — status=401
+[PASS] POST /auth/login with wrong password returns 401 — status=401
+[PASS] Alice login succeeds with 15-min JWT containing principal_id — status=200, expires_in=900, claims={"sub":"principal_a","principal_id":"principal_a","email":"alice@example.com","iat":1794558799,"exp":1794559699}
+[PASS] Bob login succeeds with JWT containing principal_b — status=200, principal_id=principal_b
+[PASS] GET /links with valid JWT returns 200 — status=200
+[PASS] GET /links with malformed/invalid JWT returns 401 — status=401
+[PASS] GET /links with expired HS256 JWT returns 401 — status=401
+
+--- SECTION B: Authorization, Ownership & URL Security Regression ---
+[PASS] Principal A creates owned link with created_by=principal_a — status=201, id=3bc64bb6-c1b6-4e4a-be4d-7d6d5dc149f1, code=MGv8l8R, created_by=principal_a
+[PASS] Unauthenticated GET /links/:id for existing link returns 401 — status=401
+[PASS] Principal A can inspect own link (200) — status=200
+[PASS] Principal B GET /links/:id on A link returns 404 without leakage — status=404, body={"error":{"code":"NOT_FOUND","message":"Requested resource was not found","request_id":"req_7f5d2a83492f6cc29d7f92a3"}}
+[PASS] Principal B PATCH /links/:id on A link returns 404 without leakage — status=404, body={"error":{"code":"NOT_FOUND","message":"Requested resource was not found","request_id":"req_0ce72cbe2ab68751ad6e3e86"}}
+[PASS] Principal B DELETE /links/:id on A link returns 404 without leakage — status=404, body={"error":{"code":"NOT_FOUND","message":"Requested resource was not found","request_id":"req_8297f169212500b624787904"}}
+[PASS] Principal B creates own link with created_by=principal_b — status=201, id=5878935a-1d98-4bf0-aef7-a3c1792e4bad
+[PASS] Principal B GET /links returns only B links and excludes A links — status=200, count=1, hasA=false, hasB=true
+[PASS] Principal A link remains unmodified after B 404 PATCH/DELETE attempts — status=200, long_url=https://example.com/m4-owned-by-a
+[PASS] Owner PATCH /links/:id with javascript: scheme rejected with 400 — status=400
+[PASS] Owner PATCH /links/:id with valid https URL succeeds (200) — status=200, long_url=https://example.com/m4-updated-by-a
+[PASS] Owner DELETE /links/:id deletes own link and follow-up GET returns 404 — create=201, delete=200, after=404
+[PASS] Module 03 10-case malicious URL abuse matrix passes (authenticated as Principal A) — 10/10 rejected with HTTP 400
+
+--- SECTION C: Public Redirect Tests ---
+[PASS] Unauthenticated GET /r/:code returns 302 with updated Location — status=302, location=https://example.com/m4-updated-by-a
+[PASS] Unauthenticated GET /r/unknown_m4_code returns 404 — status=404
+
+--- SECTION D: Rate Limiting Tests (HTTP 429 Enforcement) ---
+[PASS] Login rate limit enforces 10 req/min then HTTP 429 — requests 4..15 statuses=[200,200,200,200,200,200,200,429,429,429,429,429]
+[PASS] Create link rate limit enforces 30 req/min then HTTP 429 — prior=14, withinLimitOk=16/16, blocked429=5, statuses=[201,201,201,201,201,201,201,201,201,201,201,201,201,201,201,201,429,429,429,429,429]
+[PASS] Redirect rate limit enforces 120 req/min then HTTP 429 — prior=2, withinLimitOk=118/118, blocked429=5, tailStatuses=[302,302,302,302,302,429,429,429,429,429]
+
+--- Post-Burst Regression: Health Check ---
+[PASS] GET /health stays unthrottled (200) after rate-limit exhaustion — status=200, body={"ok":true}
+
+==========================================================
+SUMMARY: passed=31, failed=0
+==========================================================
+[TEARDOWN] Stopping API server...
+Evidence saved to: D:\Knack labs\progress\evidence\module-04\auth-ratelimit-tests.txt

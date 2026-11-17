@@ -1,0 +1,22 @@
+==========================================================
+Module 05 BREAK Drill: Error Log PII Symptom Reproduction
+Timestamp: 2026-11-11T07:51:49.113Z
+==========================================================
+
+[1] Request Sent:
+    POST /auth/login (X-Request-Id: req-break-m5-01, X-Forwarded-For: 203.0.113.42)
+    Body: {"email":"jane.doe@example.com","password":"[redacted-by-client-script]"}
+
+[2] Client HTTP Response Received:
+    Status: HTTP 401
+    X-Request-Id Header: req-break-m5-01
+    Response Body: {"error":{"code":"UNAUTHORIZED","message":"Invalid email or password","request_id":"req-break-m5-01"}}
+
+[3] Server Structured Logs Recorded for request_id:
+    {"timestamp":"2026-11-11T07:51:54.085Z","level":"warn","context":"ExceptionsFilter","event":"request_error","request_id":"req-break-m5-01","method":"POST","route":"/auth/login","status_code":401,"latency_ms":170.59,"error_code":"UNAUTHORIZED","error_name":"UnauthorizedException","error_message":"Invalid email or password | actor_email=jane.doe@example.com | client_ip=203.0.113.42"}
+    {"timestamp":"2026-11-11T07:51:54.086Z","level":"warn","context":"HTTP","event":"http_request","request_id":"req-break-m5-01","method":"POST","route":"/auth/login","status_code":401,"latency_ms":172.07,"error_code":"UNAUTHORIZED"}
+
+==========================================================
+REPRODUCED: Client HTTP 401 response looks clean, while server error logs expose user email and IP PII.
+==========================================================
+Evidence saved to: D:\Knack labs\progress\evidence\module-05\break-pii-repro.txt

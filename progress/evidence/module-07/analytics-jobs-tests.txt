@@ -1,0 +1,43 @@
+====================================================================
+Module 07: Async BullMQ Analytics, Idempotency, Privacy & Retention Suite
+Timestamp: 2026-11-13T08:36:28.227Z
+====================================================================
+
+[PASS] Connected to Redis and drained analytics-clicks queue cleanly before tests
+
+--- SECTION 0: IP Privacy & Retention Config Checks ---
+[PASS] Production environment rejects ANALYTICS_RETENTION_DAYS=0 and enforces 30-day default — retentionDays=30
+[PASS] HMAC IP hashing normalizes IPv6-mapped IPv4 addresses and never exposes raw IP — digestLen=64
+
+--- SECTION A: Async Redirect Enqueue, Backlog Independence & Worker Execution ---
+[PASS] Created link for Module 07 tests (201) — code=Byk45JO
+[PASS] GET /r/:code returns 302 rapidly without blocking on backlog or PostgreSQL writes — elapsed=42ms, dbClicksBeforeWorker=0, queuedWaiting=42
+[PASS] Standalone worker drains queue and persists 2 distinct click events with unique UUID idempotency keys & HMAC ip_hash — count=2, ua0=Module07-Verifier/1.0
+[PASS] Replaying duplicate click payload hits PostgreSQL unique constraint and avoids double-counting — countAfterReplay=2
+[PASS] Worker handles permanent malformed payload failure cleanly in 1 attempt with full failure metadata
+[PASS] AnalyticsQueueService retains completed/failed jobs and configures 5-attempt exponential backoff (500ms) — attempts=5, backoffDelay=500, removeOnFail=1000, retainedFailed=true
+[PASS] Worker handles graceful shutdown and emits shutdown structured logs — exitCode=0
+
+--- SECTION B: Transient Failure Retry & Idempotency Key Stability ---
+[PASS] Worker retries transient failures with unchanged idempotency_key and persists exactly 1 row on recovery — attempts=3, persisted=1
+
+--- SECTION C: Protected Analytics API, IDOR Isolation, Date Filtering & Rate Limit ---
+[PASS] Unauthenticated GET /links/:id/analytics returns HTTP 401 — status=401
+[PASS] Non-owner GET /links/:id/analytics returns HTTP 404 (IDOR protection) — status=404
+[PASS] Authenticated owner retrieves accurate analytics click count and last_clicked_at — total_clicks=2, last_clicked_at=2026-11-13T08:36:34.681Z
+[PASS] Date range filtering excludes out-of-window clicks cleanly — pastCount=0
+[PASS] Invalid date range (from > to) returns HTTP 400 — status=400
+[PASS] API and worker structured logs never expose raw IPs, destination URLs, or JWT secrets
+[PASS] GET /links/:id/analytics enforces 60 req/min rate limit returning HTTP 429 on excess — allowed200=60, blocked429=5
+
+--- SECTION D: Queue-Down / Redis Outage Isolation Drill (Port 3124) ---
+[PASS] Redirect returns HTTP 302 rapidly via PostgreSQL even when Redis/BullMQ queue is unreachable — status=302, elapsed=51ms
+
+--- SECTION E: Retention Purge Verification ---
+[PASS] Default 30-day retention purge deletes clicks >30 days old while preserving recent clicks and parent links — remaining=1
+[PASS] Controlled ANALYTICS_RETENTION_DAYS=0 purge clears test click events cleanly while leaving links intact — remaining=0
+
+====================================================================
+SUMMARY: passed=21, failed=0
+====================================================================
+Evidence saved to: D:\Knack labs\progress\evidence\module-07\analytics-jobs-tests.txt

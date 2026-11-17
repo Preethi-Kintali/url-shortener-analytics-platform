@@ -1,0 +1,7 @@
+=== Module 07 Transient ECONNRESET Retry & Retention Verification ===
+Timestamp: 2026-11-12T11:54:06.297Z
+Redirects: status1=302, status2=302, initialWaiting=2
+Total persistClickEvent calls (1st threw ECONNRESET, retried + 2nd job): 3
+Analytics API (200): {"link_id":"c7c8d8d5-b425-41d5-8362-e2e6c8174d0d","code":"SjQb0j4","from":"2026-10-13T11:54:06.187Z","to":"2026-11-12T11:54:06.187Z","total_clicks":2,"last_clicked_at":"2026-11-12T11:54:04.068Z"}
+PostgreSQL click_events rows for link: 2
+BullMQ counts after recovery: {"waiting":0,"active":0,"delayed":1,"completed":3,"failed":0}

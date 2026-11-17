@@ -1,0 +1,121 @@
+==================================================
+Module 03: Core API & Security Abuse Drill
+Timestamp: 2026-11-05T11:28:46.738Z
+==================================================
+
+[SETUP] Spawning NestJS API from: D:\Knack labs\api\dist\main.js
+[SETUP] Server is live and healthy on port 3000.
+
+--- STEP 1: Verify Health Endpoint ---
+GET /health -> HTTP 200 {"ok":true}
+
+--- STEP 2: Security Validation Abuse Matrix (Expect HTTP 400) ---
+[PASSED (400)] Direct JavaScript Scheme -> Payload: 'javascript:alert(1)'
+   Response: {"message":["URL scheme 'javascript' is not allowed. Only http and https are permitted"],"error":"Bad Request","statusCode":400}
+[PASSED (400)] Case-Insensitive Bypass -> Payload: 'JaVaScRiPt:alert(1)'
+   Response: {"message":["URL scheme 'javascript' is not allowed. Only http and https are permitted"],"error":"Bad Request","statusCode":400}
+[PASSED (400)] Whitespace Evasion -> Payload: '  javascript:alert(1)  '
+   Response: {"message":["long_url must not contain leading or trailing whitespace"],"error":"Bad Request","statusCode":400}
+[PASSED (400)] Data URI Payload -> Payload: 'data:text/html,<svg/onload=alert(1)>'
+   Response: {"message":["URL scheme 'data' is not allowed. Only http and https are permitted"],"error":"Bad Request","statusCode":400}
+[PASSED (400)] Scheme-Relative Bypass -> Payload: '//evil.example.com'
+   Response: {"message":["Scheme-relative URLs (starting with //) are not allowed"],"error":"Bad Request","statusCode":400}
+[PASSED (400)] Encoded Slashes -> Payload: 'http:%2f%2fevil.example.com'
+   Response: {"message":["URL must start with http:// or https://"],"error":"Bad Request","statusCode":400}
+[PASSED (400)] Encoded Scheme -> Payload: 'http%3A%2F%2Fevil.example.com'
+   Response: {"message":["URL scheme delimiter must not be percent-encoded"],"error":"Bad Request","statusCode":400}
+[PASSED (400)] Backslash Authority -> Payload: 'http:\evil.example.com'
+   Response: {"message":["Backslashes are not allowed in destination URLs"],"error":"Bad Request","statusCode":400}
+[PASSED (400)] Userinfo Phishing Trick -> Payload: 'https://good.com@evil.example.com'
+   Response: {"message":["Userinfo credentials (@) are not allowed in destination URLs"],"error":"Bad Request","statusCode":400}
+[PASSED (400)] Control Characters / Newline -> Payload: 'https://example.com\n'
+   Response: {"message":["long_url must not contain leading or trailing whitespace"],"error":"Bad Request","statusCode":400}
+
+Abuse Matrix Result: 10 / 10 malicious payloads rejected with HTTP 400.
+
+--- STEP 3: Valid Link Creation (POST /links) ---
+POST /links -> HTTP 201
+Response: {
+  "id": "9aab6507-2285-48d7-8c96-7a046c457d3c",
+  "code": "68X7Rjd",
+  "short_url": "http://localhost:3000/r/68X7Rjd",
+  "long_url": "https://example.com/dest-module-03-verified",
+  "created_at": "2026-11-05T11:28:49.610Z"
+}
+
+--- STEP 4: List Links (GET /links) ---
+GET /links?page=1&limit=5 -> HTTP 200
+Response: {
+  "data": [
+    {
+      "id": "9aab6507-2285-48d7-8c96-7a046c457d3c",
+      "code": "68X7Rjd",
+      "short_url": "http://localhost:3000/r/68X7Rjd",
+      "long_url": "https://example.com/dest-module-03-verified",
+      "created_at": "2026-11-05T11:28:49.610Z",
+      "created_by": "anonymous"
+    },
+    {
+      "id": "b59cd066-9390-42c2-9fd2-ae8cae5febd4",
+      "code": "YCHLcbn",
+      "short_url": "http://localhost:3000/r/YCHLcbn",
+      "long_url": "https://example.com/dest-module-03-verified",
+      "created_at": "2026-11-05T11:25:09.720Z",
+      "created_by": "anonymous"
+    },
+    {
+      "id": "0add6bd5-d238-4c43-bc12-908d33a752e8",
+      "code": "XXflePl",
+      "short_url": "http://localhost:3000/r/XXflePl",
+      "long_url": "https://good.com@evil.example.com",
+      "created_at": "2026-11-05T11:25:09.693Z",
+      "created_by": "anonymous"
+    },
+    {
+      "id": "23e129a0-5a77-4c0e-8ee3-8db530b432fb",
+      "code": "7lDHnNz",
+      "short_url": "http://localhost:3000/r/7lDHnNz",
+      "long_url": "https://example.com/dest-module-03-verified",
+      "created_at": "2026-11-05T11:21:22.524Z",
+      "created_by": "anonymous"
+    },
+    {
+      "id": "75aa6aaf-4a2d-48ff-9577-61cb8c194721",
+      "code": "m2-test-68303",
+      "short_url": "http://localhost:3000/r/m2-test-68303",
+      "long_url": "https://example.com/dest-m2-test-68303",
+      "created_at": "2026-11-05T10:52:16.180Z",
+      "created_by": "test-user-seed"
+    }
+  ],
+  "total": 8,
+  "page": 1,
+  "limit": 5,
+  "total_pages": 2
+}
+
+--- STEP 5: Inspect Link by ID (GET /links/9aab6507-2285-48d7-8c96-7a046c457d3c) ---
+GET /links/9aab6507-2285-48d7-8c96-7a046c457d3c -> HTTP 200
+Response: {
+  "id": "9aab6507-2285-48d7-8c96-7a046c457d3c",
+  "code": "68X7Rjd",
+  "short_url": "http://localhost:3000/r/68X7Rjd",
+  "long_url": "https://example.com/dest-module-03-verified",
+  "created_at": "2026-11-05T11:28:49.610Z",
+  "created_by": "anonymous"
+}
+
+--- STEP 6: Public Redirect (GET /r/68X7Rjd) ---
+GET /r/68X7Rjd -> HTTP 302
+Location Header: https://example.com/dest-module-03-verified
+
+--- STEP 7: Unknown Code Redirect (GET /r/nonexistent_code_999) ---
+GET /r/nonexistent_code_999 -> HTTP 404
+Response: {
+  "message": "Link with code 'nonexistent_code_999' not found",
+  "error": "Not Found",
+  "statusCode": 404
+}
+
+[TEARDOWN] Stopping API server...
+Verification complete. All results saved to: D:\Knack labs\progress\evidence\module-03\api-tests.txt

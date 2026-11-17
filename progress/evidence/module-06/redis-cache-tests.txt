@@ -1,0 +1,57 @@
+====================================================================
+Module 06: Redis Cache-Aside, Invalidation, Fallback & Throttle Suite
+Timestamp: 2026-11-13T08:35:20.916Z
+====================================================================
+
+[PASS] Dedicated bootcamp-redis responds to PING — reply=PONG
+
+--- SECTION 0: Cache-Aside & Redaction Unit Checks ---
+[PASS] Redaction utility masks Redis credentials and destination URL object keys — redisText=Failed redis://[REDACTED] connect
+[PASS] Cache HIT returns target from Redis without calling PostgreSQL — prismaFindUniqueCalls=0
+[PASS] Failed Redis invalidation does not fail PostgreSQL PATCH or DELETE writes and retrieves code before DELETE — invalidatedCodes=[unitHit1,unitHit1]
+[PASS] Invalid REDIS_URL degrades gracefully without crashing or throwing
+[PASS] Single-flight coalesces 25 concurrent misses to 1 DB read + 1 Redis write without blocking distinct keys — hotDb=1, hotSets=1, otherDb=1, coalesced=24, ttl=278
+[PASS] In-flight cache miss superseded by PATCH update never repopulates Redis with stale destination URL — invalidations=1, staleWrites=0
+
+--- SECTION A: Live Cache-Aside, Invalidation & Rate-Limit Order (Port 3000) ---
+[PASS] Create test link for Module 06 cache flow (201) — id=fa4d1873-3d7a-4d0d-9b9e-bb46fc7d5e07, code=NLAAHVJ
+[PASS] Redis key is absent before first redirect — key=redirect:v1:NLAAHVJ
+[PASS] First GET /r/:code misses cache, returns 302 from PostgreSQL, and populates Redis with bounded TTL — status=302, ttl=289s
+[PASS] Second GET /r/:code returns 302 from Redis cache HIT — status=302
+[PASS] PATCH /links/:id commits to PostgreSQL and invalidates old Redis cache key — status=200, keyValue=null
+[PASS] GET /r/:code after PATCH redirects to updated URL and repopulates Redis — status=302
+[PASS] DELETE /links/:id invalidates Redis cache and subsequent GET /r/:code returns 404 — deleteStatus=200, keyValue=null, redirectAfterDelete=404
+[PASS] GET /r/:code for unknown code returns 404 — status=404
+[PASS] Redirect 120 req/min throttling enforces HTTP 429 on Redis cache HITs BEFORE cache lookup — allowed302=115/115, blocked429=5, misses=1, hits=114, tail=[302,302,302,429,429,429,429,429]
+[PASS] Structured logs emit cache_miss and cache_hit correlated with X-Request-Id
+   Sample cache_miss log: {"timestamp":"2026-11-13T08:35:27.175Z","level":"info","context":"RedisCacheService","event":"cache_miss","layer":"redis","code":"NLAAHVJ","request_id":"req-m6-cache-miss-01"}
+   Sample cache_hit log: {"timestamp":"2026-11-13T08:35:27.266Z","level":"info","context":"RedisCacheService","event":"cache_hit","layer":"redis","code":"NLAAHVJ","request_id":"req-m6-cache-hit-02"}
+[PASS] Server logs never expose destination URLs, JWTs, passwords, or PII (Server #1)
+
+--- SECTION B: Broken REDIS_URL Graceful Fallback & Write Resilience (Port 3106) ---
+[PASS] API boots cleanly and GET /health returns 200 even when REDIS_URL points to unreachable Redis — status=200
+[PASS] GET /r/:code falls back cleanly to PostgreSQL (302) when Redis is unreachable — status=302
+[PASS] PATCH /links/:id succeeds despite failed Redis invalidation and DB reflects update — patch=200, nextRedirect=302
+[PASS] DELETE /links/:id succeeds despite failed Redis invalidation and subsequent redirect returns 404 — delete=200, after=404
+[PASS] Broken-Redis logs emit correlated cache_redis_fallback and cache_invalidation_failed events
+   Sample cache_redis_fallback log: {"timestamp":"2026-11-13T08:35:34.743Z","level":"warn","context":"RedisCacheService","event":"cache_redis_fallback","layer":"redis","operation":"get","code":"omL3TUg","reason":"redis_status_reconnecting","request_id":"req-m6-fb-redir-01"}
+   Sample cache_invalidation_failed log: {"timestamp":"2026-11-13T08:35:34.773Z","level":"warn","context":"RedisCacheService","event":"cache_invalidation_failed","layer":"redis","code":"omL3TUg","reason":"redis_status_reconnecting","ttl_seconds":300,"request_id":"req-m6-fb-patch-02"}
+[PASS] Broken-Redis logs redact Redis credentials and omit destination URLs, JWTs, and PII (Server #2)
+
+--- SECTION C: Live Runtime Redis Outage & Recovery Drill (Port 3108) ---
+[PASS] Warm cache through Redis connection succeeds before simulating runtime Redis drop
+[PASS] Live API serves HTTP 302 via PostgreSQL fallback immediately after Redis drops mid-flight — status=302
+[PASS] DELETE succeeds while Redis is down mid-flight
+[PASS] Runtime Redis outage emits cache_redis_fallback event with matching request_id
+
+--- SECTION D: Live Concurrent Cache-Miss Burst & Single-Flight Verification (Port 3110) ---
+[PASS] 20 concurrent cold/expired GET /r/:code requests all resolve with HTTP 302 — count=20
+[PASS] Live concurrent cache-miss burst coalesces to 1 DB resolution + 1 Redis population — cache_miss=2, cache_populated=1, coalesced=1, cache_hit=18
+[PASS] PATCH invalidates cache cleanly after concurrent single-flight burst — patchStatus=200, redirectStatus=302
+[PASS] DELETE invalidates cache cleanly and subsequent GET returns 404
+[PASS] Dedicated bootcamp-redis remains healthy and responds to PING after verification — reply=PONG
+
+====================================================================
+SUMMARY: passed=33, failed=0
+====================================================================
+Evidence saved to: D:\Knack labs\progress\evidence\module-06\redis-cache-tests.txt

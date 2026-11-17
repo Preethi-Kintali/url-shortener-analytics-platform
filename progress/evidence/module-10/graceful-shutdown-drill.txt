@@ -1,0 +1,104 @@
+====================================================================
+UPSK MODULE 10 EMPIRICAL GRACEFUL SHUTDOWN DRILL
+In-Flight Request Completion & Resource Teardown Verification
+====================================================================
+
+--- Step 1: Pre-Flight Verification & Resource Baselines ---
+[PASS] PostgreSQL port 5432 reachable, verified database is upsk_sdf_test
+[PASS] Redis port 6379 DB 1 reachable and responsive — PING -> PONG
+Development DB (upsk_sdf) baseline: 25 links, 0 click events
+Development Redis DB 0 baseline key count: 188
+
+--- Step 2: Launch Isolated Drill Container ---
+Executing: docker run -d --name bootcamp-api-shutdown-drill --add-host=host.docker.internal:host-gateway -p 3128:3000 -e PORT=3000 -e NODE_ENV=test -e DATABASE_URL="postgresql://postgres:postgres@host.docker.internal:5432/upsk_sdf_test?schema=public" -e REDIS_URL="redis://host.docker.internal:6379/1" -e JWT_SECRET="super-secret-key-that-is-at-least-32-chars-long!" bootcamp-api
+[PASS] Drill container started cleanly — d5f1b72ac93b
+[PASS] Drill container achieved full readiness on port 3128
+
+--- Step 3: Inspect Active Runtime Connections (Before Shutdown) ---
+Active PostgreSQL connections on upsk_sdf_test (before shutdown): 2
+[PASS] PostgreSQL connection pool actively established by container before shutdown
+Active Redis clients on Redis (before shutdown): 4
+[PASS] Redis client connections actively established by container before shutdown
+
+--- Step 4: Dispatch In-Flight Request & Concurrent SIGTERM ---
+Dispatching SIGTERM to container "bootcamp-api-shutdown-drill" at T=1794578809538...
+Container stopped in 733ms. Command output: bootcamp-api-shutdown-drill
+[PASS] In-flight HTTP request completed without socket error or ECONNRESET — Socket error: none
+[PASS] In-flight HTTP request received HTTP 200 OK during shutdown — Status: 200, Body: {"ok":true,"status":"ready","db":"ok","redis":"ok"}
+[PASS] In-flight response body completed with full ready payload — {"ok":true,"status":"ready","db":"ok","redis":"ok"}
+
+Chronological Event Timeline:
+  [1] Request socket connected: T=0ms (epoch: 1794578809526)
+  [2] SIGTERM signal dispatched: T=+12ms (epoch: 1794578809538)
+  [3] In-flight response finished: T=+749ms (epoch: 1794578810275)
+  [4] Container stop completed: T=+745ms (epoch: 1794578810271)
+[PASS] Timeline and status confirm HTTP request was in flight when SIGTERM was dispatched and completed cleanly — Request started at 1794578809526, SIGTERM sent at 1794578809538 (+12ms later), received HTTP 200 with zero socket errors
+
+--- Step 5: Verify Post-Shutdown Traffic Rejection ---
+[PASS] New connection attempts immediately rejected / connection refused after shutdown — Probe status: 0 (curl failed as expected)
+
+--- Step 6: Container State & Exit Code Inspection ---
+[PASS] Container status is "exited" — Status: exited
+[PASS] Container exited cleanly with standard termination code (0 or 143) — Exit code: 0
+[PASS] Container terminated gracefully in 733ms (< 3,000ms grace window)
+
+--- Step 7: Complete Container Shutdown Logs ---
+Captured Logs:
+  {"timestamp":"2026-11-13T14:06:48.918Z","level":"info","context":"AnalyticsQueueService","event":"analytics_queue_redis_ready","status":"ok"}
+  {"timestamp":"2026-11-13T14:06:49.261Z","level":"info","context":"PrismaService","event":"db_connected","status":"ok"}
+  {"timestamp":"2026-11-13T14:06:49.282Z","level":"info","context":"RedisCacheService","event":"redis_connected","status":"ok"}
+  {"timestamp":"2026-11-13T14:06:49.294Z","level":"info","context":"NestFactory","message":"Starting Nest application..."}
+  {"timestamp":"2026-11-13T14:06:49.295Z","level":"info","context":"InstanceLoader","message":"LoggingModule dependencies initialized"}
+  {"timestamp":"2026-11-13T14:06:49.295Z","level":"info","context":"InstanceLoader","message":"ThrottlerModule dependencies initialized"}
+  {"timestamp":"2026-11-13T14:06:49.295Z","level":"info","context":"InstanceLoader","message":"JwtModule dependencies initialized"}
+  {"timestamp":"2026-11-13T14:06:49.295Z","level":"info","context":"InstanceLoader","message":"CacheModule dependencies initialized"}
+  {"timestamp":"2026-11-13T14:06:49.296Z","level":"info","context":"InstanceLoader","message":"PrismaModule dependencies initialized"}
+  {"timestamp":"2026-11-13T14:06:49.296Z","level":"info","context":"InstanceLoader","message":"AppModule dependencies initialized"}
+  {"timestamp":"2026-11-13T14:06:49.296Z","level":"info","context":"InstanceLoader","message":"HealthModule dependencies initialized"}
+  {"timestamp":"2026-11-13T14:06:49.296Z","level":"info","context":"InstanceLoader","message":"AnalyticsModule dependencies initialized"}
+  {"timestamp":"2026-11-13T14:06:49.297Z","level":"info","context":"InstanceLoader","message":"AuthModule dependencies initialized"}
+  {"timestamp":"2026-11-13T14:06:49.297Z","level":"info","context":"InstanceLoader","message":"LinksModule dependencies initialized"}
+  {"timestamp":"2026-11-13T14:06:49.297Z","level":"info","context":"RoutesResolver","message":"HealthController {/}:"}
+  {"timestamp":"2026-11-13T14:06:49.297Z","level":"info","context":"RouterExplorer","message":"Mapped {/health, GET} route"}
+  {"timestamp":"2026-11-13T14:06:49.297Z","level":"info","context":"RouterExplorer","message":"Mapped {/ready, GET} route"}
+  {"timestamp":"2026-11-13T14:06:49.298Z","level":"info","context":"RouterExplorer","message":"Mapped {/health/ready, GET} route"}
+  {"timestamp":"2026-11-13T14:06:49.298Z","level":"info","context":"RoutesResolver","message":"AuthController {/auth}:"}
+  {"timestamp":"2026-11-13T14:06:49.298Z","level":"info","context":"RouterExplorer","message":"Mapped {/auth/login, POST} route"}
+  {"timestamp":"2026-11-13T14:06:49.298Z","level":"info","context":"RoutesResolver","message":"LinksController {/links}:"}
+  {"timestamp":"2026-11-13T14:06:49.298Z","level":"info","context":"RouterExplorer","message":"Mapped {/links, POST} route"}
+  {"timestamp":"2026-11-13T14:06:49.298Z","level":"info","context":"RouterExplorer","message":"Mapped {/links, GET} route"}
+  {"timestamp":"2026-11-13T14:06:49.298Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/search, GET} route"}
+  {"timestamp":"2026-11-13T14:06:49.299Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/:id/analytics, GET} route"}
+  {"timestamp":"2026-11-13T14:06:49.299Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/:id, GET} route"}
+  {"timestamp":"2026-11-13T14:06:49.299Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/:id, PATCH} route"}
+  {"timestamp":"2026-11-13T14:06:49.299Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/:id, DELETE} route"}
+  {"timestamp":"2026-11-13T14:06:49.299Z","level":"info","context":"RoutesResolver","message":"RedirectController {/r}:"}
+  {"timestamp":"2026-11-13T14:06:49.299Z","level":"info","context":"RouterExplorer","message":"Mapped {/r/:code, GET} route"}
+  {"timestamp":"2026-11-13T14:06:49.299Z","level":"info","context":"NestApplication","message":"Nest application successfully started"}
+  {"timestamp":"2026-11-13T14:06:49.302Z","level":"info","context":"Bootstrap","event":"server_started","port":3000,"host":"[REDACTED_IP]"}
+  {"timestamp":"2026-11-13T14:06:49.484Z","level":"info","context":"HTTP","event":"http_request","request_id":"req_4653f1dc8f363ef367c2d8a4","method":"GET","route":"/ready","status_code":200,"latency_ms":44.47}
+  {"timestamp":"2026-11-13T14:06:49.549Z","level":"info","context":"HTTP","event":"http_request","request_id":"req_78f86fa5397db56c9afea6d3","method":"GET","route":"/ready","status_code":200,"latency_ms":11.8}
+
+--- Step 8: Post-Shutdown Database & Redis Connection Verification ---
+Active PostgreSQL connections on upsk_sdf_test (after shutdown): 1
+[PASS] PostgreSQL connection pool closed; active connections dropped after container shutdown — Before: 2 -> After: 1
+Active Redis clients on Redis (after shutdown): 2
+[PASS] Redis client connections closed; active clients dropped after container shutdown — Before: 4 -> After: 2
+
+Logging Limitation Note:
+  - Direct Prisma disconnect log in stdout: NONE (PrismaService.onModuleDestroy only emits logs on failure)
+  - Direct Redis quit log in stdout: NONE (RedisCacheService.onModuleDestroy quits silently without stdout emission)
+  - Concrete runtime proof: Established via pg_stat_activity (connections dropped from 2 to 1) and Redis CLIENT LIST (clients dropped from 4 to 2).
+
+--- Step 9: Container Cleanup & Teardown ---
+Container "bootcamp-api-shutdown-drill" removed.
+[PASS] Drill container verified completely removed from Docker
+
+--- Step 10: Development Environment Integrity Verification ---
+[PASS] Development PostgreSQL database (upsk_sdf) completely unchanged — Links: 25 -> 25, ClickEvents: 0 -> 0
+[PASS] Development Redis DB 0 completely unchanged — Key count: 188 -> 188
+
+====================================================================
+GRACEFUL SHUTDOWN DRILL RESULTS: 19 PASSED, 0 FAILED
+====================================================================
+

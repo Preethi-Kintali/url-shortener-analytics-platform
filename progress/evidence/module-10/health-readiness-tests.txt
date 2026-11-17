@@ -1,0 +1,46 @@
+====================================================================
+UPSK MODULE 10 BUILD VERIFICATION: CI/CD & DEPLOYMENT (RAILWAY)
+====================================================================
+
+[PASS] Database & Redis isolation pre-flight verified — Database: upsk_sdf_test on localhost:5432, Redis DB: 1
+
+--- Step 2: One-Off Migration Command Verification ---
+[PASS] Dedicated npm run migrate script exists using prisma migrate deploy — Script: "prisma migrate deploy"
+[PASS] One-off migration execution succeeds idempotently against test database — No pending migrations to apply.
+
+--- Step 3: Multi-Stage Dockerfile Verification ---
+[PASS] Dockerfile exists in api root
+[PASS] .dockerignore exists in api root
+[PASS] Dockerfile implements multi-stage build (builder -> runner)
+[PASS] Dockerfile runs production container as non-root user
+[PASS] Dockerfile specifies EXPOSE 3000 and CMD ["node", "dist/main"]
+
+--- Step 4: GitHub Actions CI Pipeline Verification ---
+[PASS] GitHub Actions ci.yml exists at .github/workflows/ci.yml
+[PASS] CI workflow defines PostgreSQL and Redis service containers
+[PASS] CI workflow runs one-off prisma migrate deploy before tests
+[PASS] CI workflow runs test suite and build
+
+--- Step 5: Server Dynamic PORT & 0.0.0.0 Host Binding ---
+[PASS] Server explicitly binds to 0.0.0.0 in main.ts
+[PASS] Server explicitly enables NestJS graceful shutdown hooks in main.ts
+Spawning test API server on dynamic PORT=3110...
+[PASS] Server booted successfully on dynamic PORT=3110
+
+--- Step 6: Liveness & Readiness Probes Verification ---
+[PASS] GET /health returns HTTP 200 { ok: true } (Liveness probe) — {"ok":true}
+[PASS] GET /ready returns HTTP 200 with db: ok and redis: ok (Readiness probe) — {"ok":true,"status":"ready","db":"ok","redis":"ok"}
+[PASS] GET /health/ready alias returns HTTP 200 matching /ready
+
+--- Step 7: Readiness Negative Drill (Dependency Outage) ---
+[PASS] Secondary server booted with broken DB configuration on PORT=3111
+[PASS] GET /health still returns HTTP 200 during database outage (Liveness decoupling)
+[PASS] GET /ready returns HTTP 503 within 1044ms when PostgreSQL is unreachable — {"ok":false,"status":"unready","db":"unreachable","redis":"ok"}
+
+--- Step 8: Graceful Shutdown Lifecycle Verification ---
+[PASS] Server gracefully terminated on SIGTERM in 31ms without hanging — Exit code: null, Signal: SIGTERM
+
+====================================================================
+MODULE 10 BUILD VERIFICATION RESULTS: 22 PASSED, 0 FAILED
+====================================================================
+

@@ -1,0 +1,46 @@
+====================================================================
+UPSK MODULE 10 BREAK REPRODUCTION: READINESS PROBE FAILURE
+HARD SCENARIO: Readiness probes fail because dependencies are not reachable
+====================================================================
+
+--- Step 0: Pre-Flight Safety Verification ---
+[PASS] Pre-flight: Test database target is strictly upsk_sdf_test (never upsk_sdf)
+[PASS] Pre-flight: Test Redis target is strictly DB 1 (never DB 0)
+
+--- Step 1: Establish Healthy Baseline (Isolated Docker Container) ---
+Starting baseline container "bootcamp-api-break-baseline" on port 3125...
+[PASS] Baseline container started cleanly — 7040da31626d
+[PASS] Baseline container reached full readiness — Status: 200
+[PASS] Baseline /health returns HTTP 200 {"ok":true} — Latency: 104ms, Body: {"ok":true}
+[PASS] Baseline /ready returns HTTP 200 with db: ok and redis: ok — Latency: 113ms, Body: {"ok":true,"status":"ready","db":"ok","redis":"ok"}
+[PASS] Baseline container logs confirm successful db_connected and redis_connected events
+Baseline container "bootcamp-api-break-baseline" stopped and removed.
+
+--- Step 2: Inject Controlled Dependency Failure (Unreachable Database) ---
+Starting failure container "bootcamp-api-break-dep-fail" on port 3126 with unreachable DB (port 5439)...
+[PASS] Failure container started cleanly — 9ca1b0c59b2e
+[PASS] Failure container booted HTTP server despite database outage
+
+--- Step 3: Reproduce and Record Readiness Failure ---
+[PASS] Liveness probe GET /health remains HTTP 200 {"ok":true} (Decoupled from dependency failure) — Status: 200, Latency: 96ms, Body: {"ok":true}
+[PASS] Readiness probe GET /ready returns HTTP 503 Service Unavailable (Readiness failure reproduced!) — Status: 503, Latency: 343ms, Body: {"ok":false,"status":"unready","db":"unreachable","redis":"ok"}
+[PASS] Readiness alias GET /health/ready also returns HTTP 503 Service Unavailable — Status: 503, Latency: 338ms, Body: {"ok":false,"status":"unready","db":"unreachable","redis":"ok"}
+
+--- Step 4: Container Log Analysis & Connection Errors ---
+[PASS] Container logs record database initial connect failure warning
+[PASS] Container logs record HTTP 503 readiness probe response
+
+Extracted Log Lines from Failure Container:
+  {"timestamp":"2026-11-13T11:47:40.350Z","level":"warn","context":"PrismaService","event":"db_initial_connect_failed","status":"degraded","detail":"Can't reach database server at `host.docker.internal:5439`  Please make sure your database server is running at `host.docker.internal:5439`."}
+  {"timestamp":"2026-11-13T11:47:40.531Z","level":"info","context":"HTTP","event":"http_request","request_id":"req_88c721431991cf49b14c7c64","method":"GET","route":"/health","status_code":200,"latency_ms":13.76}
+  {"timestamp":"2026-11-13T11:47:40.882Z","level":"error","context":"HTTP","event":"http_request","request_id":"req_0c3d14ed40775aeee3f3e61c","method":"GET","route":"/ready","status_code":503,"latency_ms":241.46}
+  {"timestamp":"2026-11-13T11:47:41.229Z","level":"error","context":"HTTP","event":"http_request","request_id":"req_e6aca4dc26ef9464c7e3cd4e","method":"GET","route":"/health/ready","status_code":503,"latency_ms":234.31}
+
+--- Step 5: Cleanup & Rollback Confirmation ---
+Failure container "bootcamp-api-break-dep-fail" stopped and removed.
+[PASS] Failure container verified completely removed from Docker
+
+====================================================================
+BREAK REPRODUCTION RESULTS: 15 PASSED, 0 FAILED
+====================================================================
+

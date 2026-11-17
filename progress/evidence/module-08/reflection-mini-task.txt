@@ -1,0 +1,76 @@
+====================================================================
+Module 08: STEP 4 Verification Mini-Task & Reflection Proof
+Timestamp: 2026-11-13T06:30:44.719Z
+====================================================================
+
+1. Service Health Checks:
+- PostgreSQL connected: OK
+- Redis connected: reply=PONG
+
+2. Starting NestJS API on port 3130...
+- API server live on port 3130 with health status 200 OK
+
+3. Authenticated Sessions:
+- Alice authenticated: Bearer [REDACTED_JWT_ALICE]
+- Bob authenticated: Bearer [REDACTED_JWT_BOB]
+
+4. Created Seed Links for Test:
+- Alice link created: id=42a2a80d-9504-4ecd-b74e-c79cce2e46b9, code=Rcnjs9F, tag=reflect_1794551453275
+- Bob link created: id=60163988-a5bf-4c26-9eb3-f0ce65ecc576, code=N7EQq9y, tag=reflect_1794551453275
+
+5. Authenticated Search Request with Pagination Metadata:
+Command/Request: GET /links/search?tag=reflect_1794551453275&page=1&page_size=10
+Headers: Authorization: Bearer [REDACTED_JWT_ALICE]
+HTTP Status: 200 OK
+Response Body:
+{
+  "data": [
+    {
+      "id": "42a2a80d-9504-4ecd-b74e-c79cce2e46b9",
+      "code": "Rcnjs9F",
+      "short_url": "http://localhost:3130/r/Rcnjs9F",
+      "long_url": "https://docs.example.com/spring-launch/alpha",
+      "tags": [
+        "spring",
+        "reflect_1794551453275"
+      ],
+      "created_at": "2026-11-13T06:30:53.392Z",
+      "created_by": "principal_a"
+    }
+  ],
+  "pagination": {
+    "page": 1,
+    "page_size": 10,
+    "total": 1
+  }
+}
+- Pagination Verification: page=1, page_size=10, total=1
+- Results belong strictly to Alice: true (Bob link excluded)
+
+6. Safe SQL-Injection-Style Search Attempt (' OR 1=1 --):
+Command/Request: GET /links/search?q='%20OR%201%3D1%20--&page=1&page_size=20
+Literal Query String: q="' OR 1=1 --"
+Headers: Authorization: Bearer [REDACTED_JWT_ALICE]
+HTTP Status: 200 OK
+Response Body:
+{
+  "data": [],
+  "pagination": {
+    "page": 1,
+    "page_size": 20,
+    "total": 0
+  }
+}
+
+7. Security & Owner Isolation Verification:
+- Total matches for literal string "' OR 1=1 --": 0 (items returned: 0)
+- Neutralized as literal string search: YES (did not short-circuit WHERE clause)
+- Bob's confidential link exposed: NO (STRICT ISOLATION MAINTAINED)
+- Owner scoping enforced via JWT: YES (WHERE created_by = [Alice principalId])
+
+8. Test Cleanup: Successfully removed temporary reflection fixtures.
+
+====================================================================
+MINI-TASK RESULT: VERIFICATION PASSED SUCCESSFULLY
+Proof captured at: D:\Knack labs\progress\evidence\module-08\reflection-mini-task.txt
+====================================================================

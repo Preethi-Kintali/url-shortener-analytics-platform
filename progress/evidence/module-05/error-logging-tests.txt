@@ -1,0 +1,44 @@
+====================================================================
+Module 05: Error Handling, Request ID & Redaction Verification Suite
+Timestamp: 2026-11-13T08:33:43.015Z
+====================================================================
+
+--- SECTION 0: Exception Filter Mapping & Redaction Unit Checks ---
+[PASS] Prisma P2002 maps to HTTP 409 CONFLICT — status=409, code=CONFLICT
+[PASS] Prisma P1001 maps to HTTP 503 DATABASE_UNAVAILABLE — status=503, code=DATABASE_UNAVAILABLE
+[PASS] Unhandled Error maps to safe HTTP 500 and redacts embedded credentials — status=500, safeMessage=Internal server error, redacted=Crash with postgresql://[REDACTED] and Bearer [REDACTED]
+[PASS] X-Request-Id validator accepts safe IDs and rejects short/control/log-injection values
+[PASS] Redaction utility scrubs email addresses, IPv4 addresses, and PII object keys — text=Failed login actor_email=[REDACTED] from [REDACTED_IP] for [REDACTED_EMAIL]
+
+--- SECTION A/C/D: Validation Envelope, Request ID, Redaction & Normal Operations ---
+[PASS] Authenticated login succeeds (200)
+[PASS] Authenticated POST /links with invalid long_url returns HTTP 400
+[PASS] Validation error returns standardized envelope with matching X-Request-Id and no leaks — code=VALIDATION_ERROR, request_id=req_4ec9aaa2900221b0f6be45cb, header=req_4ec9aaa2900221b0f6be45cb, noLeaks=true
+   Sample 400 envelope: {"error":{"code":"VALIDATION_ERROR","message":"URL must have a valid scheme","request_id":"req_4ec9aaa2900221b0f6be45cb"}}
+[PASS] Malformed JSON body returns HTTP 400
+[PASS] Malformed JSON returns standardized INVALID_JSON envelope with request_id — code=INVALID_JSON, request_id=req_d9ef1ece90b329c8f5c79897, header=req_d9ef1ece90b329c8f5c79897, noLeaks=true
+   Sample malformed JSON envelope: {"error":{"code":"INVALID_JSON","message":"Malformed JSON request body","request_id":"req_d9ef1ece90b329c8f5c79897"}}
+[PASS] Valid incoming X-Request-Id is honored across header and error envelope (404) — body={"error":{"code":"NOT_FOUND","message":"Requested resource was not found","request_id":"client-trace-m5-01"}}
+[PASS] Invalid incoming X-Request-Id is rejected and replaced with secure generated ID — generated=req_c8730f39609a5206a1d0f4e7
+[PASS] Sentinel Bearer DO_NOT_LOG_ME_123 rejected with HTTP 401
+[PASS] Sentinel 401 returns standardized UNAUTHORIZED envelope — code=UNAUTHORIZED, request_id=sentinel-redaction-01, header=sentinel-redaction-01, noLeaks=true
+   Sample 401 envelope: {"error":{"code":"UNAUTHORIZED","message":"Missing or invalid authentication token","request_id":"sentinel-redaction-01"}}
+[PASS] Wrong login password rejected with HTTP 401
+[PASS] Failed login 401 returns safe UNAUTHORIZED envelope with matching X-Request-Id and zero PII — code=UNAUTHORIZED, request_id=pii-fix-regression-01, header=pii-fix-regression-01, noLeaks=true
+[PASS] Normal create (201), public redirect (302), and /health (200) work cleanly with Module 05 middleware
+[PASS] Secret and PII redaction confirmed: DO_NOT_LOG_ME_123, passwords, JWTs, emails, and client IPs absent from all server logs — sentinel_logs=[{"timestamp":"2026-11-13T08:33:49.158Z","level":"warn","context":"ExceptionsFilter","event":"request_error","request_id":"sentinel-redaction-01","method":"GET","route":"/links","status_code":401,"latency_ms":2.9,"error_code":"UNAUTHORIZED","error_name":"UnauthorizedException","error_message":"Missing or invalid authentication token"},{"timestamp":"2026-11-13T08:33:49.160Z","level":"warn","context":"HTTP","event":"http_request","request_id":"sentinel-redaction-01","method":"GET","route":"/links","status_code":401,"latency_ms":4.88,"error_code":"UNAUTHORIZED"}], pii_fix_logs=[{"timestamp":"2026-11-13T08:33:49.346Z","level":"warn","context":"ExceptionsFilter","event":"request_error","request_id":"pii-fix-regression-01","method":"POST","route":"/auth/login","status_code":401,"latency_ms":175.84,"error_code":"UNAUTHORIZED","error_name":"UnauthorizedException","error_message":"Invalid email or password"},{"timestamp":"2026-11-13T08:33:49.347Z","level":"warn","context":"HTTP","event":"http_request","request_id":"pii-fix-regression-01","method":"POST","route":"/auth/login","status_code":401,"latency_ms":176.75,"error_code":"UNAUTHORIZED"}]
+[PASS] Structured HTTP log records request_id, route, status_code, and latency_ms — entry={"timestamp":"2026-11-13T08:33:49.127Z","level":"warn","context":"HTTP","event":"http_request","request_id":"client-trace-m5-01","method":"GET","route":"/links/nonexistent-id-05","status_code":404,"latency_ms":56.14,"error_code":"NOT_FOUND"}
+
+--- SECTION B: Isolated Invalid DATABASE_URL Server Error Test (Port 3105) ---
+[PASS] Isolated server /health responds 200 even when DB is unreachable
+[PASS] DB-dependent GET /r/:code returns controlled HTTP 503 when DATABASE_URL is invalid — status=503
+[PASS] HTTP 503 returns standardized DATABASE_UNAVAILABLE envelope with matching X-Request-Id and zero leaks — code=DATABASE_UNAVAILABLE, request_id=req_c84a753477879605ace26c5f, header=req_c84a753477879605ace26c5f, noLeaks=true
+   Sample 503 envelope: {"error":{"code":"DATABASE_UNAVAILABLE","message":"Database service is temporarily unavailable. Please try again later.","request_id":"req_c84a753477879605ace26c5f"}}
+[PASS] Authenticated GET /links returns controlled HTTP 503 when DATABASE_URL is invalid — status=503
+[PASS] Authenticated DB 503 response matches envelope and leaks no DB URL or stack — code=DATABASE_UNAVAILABLE, request_id=req_f3d3baf13bab3c8a3c6c425c, header=req_f3d3baf13bab3c8a3c6c425c, noLeaks=true
+[PASS] Broken-DB server logs contain request_error and http_request entries with exact matching request_id — request_id=req_c84a753477879605ace26c5f, http_log={"timestamp":"2026-11-13T08:33:59.468Z","level":"error","context":"HTTP","event":"http_request","request_id":"req_c84a753477879605ace26c5f","method":"GET","route":"/r/anycode05","status_code":503,"latency_ms":2078.01,"error_code":"DATABASE_UNAVAILABLE"}
+[PASS] Database connection string & credentials never exposed in HTTP 503 responses or server logs
+
+====================================================================
+SUMMARY: passed=26, failed=0
+====================================================================

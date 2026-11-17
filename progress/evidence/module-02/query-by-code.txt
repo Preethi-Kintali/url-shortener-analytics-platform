@@ -1,0 +1,12 @@
+=== Module 02 Database Query & Constraint Verification ===
+Timestamp: 2026-11-05T16:18:46+05:30
+Execution: npx ts-node scripts/module-02-seed-query.ts
+
+[SEED] Inserting link: code=m2-test-38744, url=https://example.com/dest-m2-test-38744
+[QUERY] Selecting link by code: m2-test-38744
+[RESULT] inserted code: m2-test-38744
+[RESULT] selected code: m2-test-38744
+[RESULT] matched long_url: https://example.com/dest-m2-test-38744
+[RESULT] associated clicks count: 1
+[DUPLICATE TEST] Attempting to insert duplicate code=m2-test-38744
+[DUPLICATE TEST PASSED] Unique constraint properly rejected duplicate code (Prisma error P2002).

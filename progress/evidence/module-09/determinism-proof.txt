@@ -1,0 +1,101 @@
+====================================================================
+Module 09: Determinism & Non-Flakiness Verification (5 Consecutive Runs)
+Timestamp: 2026-11-13T08:51:00Z
+Target Test DB: upsk_sdf_test
+Target Test Redis: redis://localhost:6379/1
+====================================================================
+
+--- RUN 1 ---
+Timestamp: 2026-11-13T08:49:35.174Z
+[PASS] Database safety pre-flight: Target database is explicitly upsk_sdf_test on port 5432 (env=test)
+[PASS] Redis isolation pre-flight: Target Redis is explicitly DB 1 on port 6379
+[PASS] Redis connection check: Connected to isolated Redis DB 1 and flushed DB 1 only
+[PASS] CRITERION 1: Create Link persists valid URL, normalizes/deduplicates tags, and returns 201 (code=Ip2EQE1)
+[PASS] CRITERION 2: Redirect correctness: GET /r/:code returns HTTP 302 with exact Location header
+[PASS] CRITERION 3: Authentication protection: Protected endpoints reject missing/invalid JWT with 401
+[PASS] CRITERION 4: Authorization / IDOR protection: Cross-owner read/update/delete returns 404
+[PASS] CRITERION 4 (Integrity): Attacker patch attempt did not modify owner resource in database
+[PASS] CRITERION 5: Retention enforcement: Purge CLI cleans records older than retention period (purged=1, remaining=1)
+[PASS] CRITERION 6: URL validation regression: Malicious, credential-containing and non-HTTP URLs rejected with 400 (7/7)
+[PASS] CRITERION 7: Analytics idempotency: Application processing catches duplicate and returns duplicate_ignored, backed by P2002 constraint with count=1
+[PASS] SAFETY VERIFICATION: Development database (upsk_sdf) row count unchanged (links=25->25, clicks=0->0)
+[PASS] SAFETY VERIFICATION: Development Redis DB 0 key count unchanged (db0Keys=188->188)
+Result: 13 / 13 passed, 0 failed
+
+--- RUN 2 ---
+Timestamp: 2026-11-13T08:49:53.960Z
+[PASS] Database safety pre-flight: Target database is explicitly upsk_sdf_test on port 5432 (env=test)
+[PASS] Redis isolation pre-flight: Target Redis is explicitly DB 1 on port 6379
+[PASS] Redis connection check: Connected to isolated Redis DB 1 and flushed DB 1 only
+[PASS] CRITERION 1: Create Link persists valid URL, normalizes/deduplicates tags, and returns 201 (code=Z7zhfC6)
+[PASS] CRITERION 2: Redirect correctness: GET /r/:code returns HTTP 302 with exact Location header
+[PASS] CRITERION 3: Authentication protection: Protected endpoints reject missing/invalid JWT with 401
+[PASS] CRITERION 4: Authorization / IDOR protection: Cross-owner read/update/delete returns 404
+[PASS] CRITERION 4 (Integrity): Attacker patch attempt did not modify owner resource in database
+[PASS] CRITERION 5: Retention enforcement: Purge CLI cleans records older than retention period (purged=1, remaining=1)
+[PASS] CRITERION 6: URL validation regression: Malicious, credential-containing and non-HTTP URLs rejected with 400 (7/7)
+[PASS] CRITERION 7: Analytics idempotency: Application processing catches duplicate and returns duplicate_ignored, backed by P2002 constraint with count=1
+[PASS] SAFETY VERIFICATION: Development database (upsk_sdf) row count unchanged (links=25->25, clicks=0->0)
+[PASS] SAFETY VERIFICATION: Development Redis DB 0 key count unchanged (db0Keys=188->188)
+Result: 13 / 13 passed, 0 failed
+
+--- RUN 3 ---
+Timestamp: 2026-11-13T08:50:12.218Z
+[PASS] Database safety pre-flight: Target database is explicitly upsk_sdf_test on port 5432 (env=test)
+[PASS] Redis isolation pre-flight: Target Redis is explicitly DB 1 on port 6379
+[PASS] Redis connection check: Connected to isolated Redis DB 1 and flushed DB 1 only
+[PASS] CRITERION 1: Create Link persists valid URL, normalizes/deduplicates tags, and returns 201 (code=tXWjA8Z)
+[PASS] CRITERION 2: Redirect correctness: GET /r/:code returns HTTP 302 with exact Location header
+[PASS] CRITERION 3: Authentication protection: Protected endpoints reject missing/invalid JWT with 401
+[PASS] CRITERION 4: Authorization / IDOR protection: Cross-owner read/update/delete returns 404
+[PASS] CRITERION 4 (Integrity): Attacker patch attempt did not modify owner resource in database
+[PASS] CRITERION 5: Retention enforcement: Purge CLI cleans records older than retention period (purged=1, remaining=1)
+[PASS] CRITERION 6: URL validation regression: Malicious, credential-containing and non-HTTP URLs rejected with 400 (7/7)
+[PASS] CRITERION 7: Analytics idempotency: Application processing catches duplicate and returns duplicate_ignored, backed by P2002 constraint with count=1
+[PASS] SAFETY VERIFICATION: Development database (upsk_sdf) row count unchanged (links=25->25, clicks=0->0)
+[PASS] SAFETY VERIFICATION: Development Redis DB 0 key count unchanged (db0Keys=188->188)
+Result: 13 / 13 passed, 0 failed
+
+--- RUN 4 ---
+Timestamp: 2026-11-13T08:50:30.490Z
+[PASS] Database safety pre-flight: Target database is explicitly upsk_sdf_test on port 5432 (env=test)
+[PASS] Redis isolation pre-flight: Target Redis is explicitly DB 1 on port 6379
+[PASS] Redis connection check: Connected to isolated Redis DB 1 and flushed DB 1 only
+[PASS] CRITERION 1: Create Link persists valid URL, normalizes/deduplicates tags, and returns 201 (code=vv3xsRa)
+[PASS] CRITERION 2: Redirect correctness: GET /r/:code returns HTTP 302 with exact Location header
+[PASS] CRITERION 3: Authentication protection: Protected endpoints reject missing/invalid JWT with 401
+[PASS] CRITERION 4: Authorization / IDOR protection: Cross-owner read/update/delete returns 404
+[PASS] CRITERION 4 (Integrity): Attacker patch attempt did not modify owner resource in database
+[PASS] CRITERION 5: Retention enforcement: Purge CLI cleans records older than retention period (purged=1, remaining=1)
+[PASS] CRITERION 6: URL validation regression: Malicious, credential-containing and non-HTTP URLs rejected with 400 (7/7)
+[PASS] CRITERION 7: Analytics idempotency: Application processing catches duplicate and returns duplicate_ignored, backed by P2002 constraint with count=1
+[PASS] SAFETY VERIFICATION: Development database (upsk_sdf) row count unchanged (links=25->25, clicks=0->0)
+[PASS] SAFETY VERIFICATION: Development Redis DB 0 key count unchanged (db0Keys=188->188)
+Result: 13 / 13 passed, 0 failed
+
+--- RUN 5 ---
+Timestamp: 2026-11-13T08:50:48.711Z
+[PASS] Database safety pre-flight: Target database is explicitly upsk_sdf_test on port 5432 (env=test)
+[PASS] Redis isolation pre-flight: Target Redis is explicitly DB 1 on port 6379
+[PASS] Redis connection check: Connected to isolated Redis DB 1 and flushed DB 1 only
+[PASS] CRITERION 1: Create Link persists valid URL, normalizes/deduplicates tags, and returns 201 (code=z4x8wQV)
+[PASS] CRITERION 2: Redirect correctness: GET /r/:code returns HTTP 302 with exact Location header
+[PASS] CRITERION 3: Authentication protection: Protected endpoints reject missing/invalid JWT with 401
+[PASS] CRITERION 4: Authorization / IDOR protection: Cross-owner read/update/delete returns 404
+[PASS] CRITERION 4 (Integrity): Attacker patch attempt did not modify owner resource in database
+[PASS] CRITERION 5: Retention enforcement: Purge CLI cleans records older than retention period (purged=1, remaining=1)
+[PASS] CRITERION 6: URL validation regression: Malicious, credential-containing and non-HTTP URLs rejected with 400 (7/7)
+[PASS] CRITERION 7: Analytics idempotency: Application processing catches duplicate and returns duplicate_ignored, backed by P2002 constraint with count=1
+[PASS] SAFETY VERIFICATION: Development database (upsk_sdf) row count unchanged (links=25->25, clicks=0->0)
+[PASS] SAFETY VERIFICATION: Development Redis DB 0 key count unchanged (db0Keys=188->188)
+Result: 13 / 13 passed, 0 failed
+
+====================================================================
+DETERMINISM SUMMARY:
+Total Runs: 5
+Passed Runs: 5 / 5 (100%)
+Failed Runs: 0
+Total Assertions: 65 / 65 passed (100%)
+Flakiness Rate: 0.0%
+====================================================================
+

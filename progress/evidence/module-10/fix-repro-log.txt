@@ -1,0 +1,121 @@
+====================================================================
+UPSK MODULE 10 FIX RECOVERY VERIFICATION: READINESS RESTORATION
+Testing isolated container recovery with restored DATABASE_URL
+====================================================================
+
+--- Step 1: Pre-Flight Infrastructure & Isolation Verification ---
+[PASS] PostgreSQL port 5432 reachable, database verified as upsk_sdf_test — Database: upsk_sdf_test
+[PASS] Redis port 6379 DB 1 reachable and responsive — PING -> PONG
+Development DB (upsk_sdf) baseline: 25 links, 0 click events
+Development Redis DB 0 baseline key count: 188
+
+--- Step 2: Port & Container Name Availability ---
+[PASS] Container name "bootcamp-api-fix-verify" is available
+
+--- Step 3: Launch Recovery Container with Restored Configuration ---
+Executing: docker run -d --name bootcamp-api-fix-verify --add-host=host.docker.internal:host-gateway -p 3127:3000 -e PORT=3000 -e NODE_ENV=test -e DATABASE_URL="postgresql://postgres:postgres@host.docker.internal:5432/upsk_sdf_test?schema=public" -e REDIS_URL="redis://host.docker.internal:6379/1" -e JWT_SECRET="super-secret-key-that-is-at-least-32-chars-long!" bootcamp-api
+[PASS] Recovery container started cleanly — 1194a9d7bbfb
+
+--- Step 4: Health and Readiness Probes Verification ---
+[PASS] Recovery container achieved readiness (HTTP 200 ready) — Status: 200
+[PASS] Liveness probe GET /health returns HTTP 200 {"ok":true} — Latency: 108ms, Body: {"ok":true}
+
+Raw /health Response:
+HTTP/1.1 200 OK
+X-Powered-By: Express
+X-Request-Id: req_4c30d8e8a4bd36924969b0bf
+Content-Type: application/json; charset=utf-8
+Content-Length: 11
+ETag: W/"b-Ai2R8hgEarLmHKwesT1qcY913ys"
+Date: Fri, 13 Nov 2026 13:32:06 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"ok":true}
+
+[PASS] Readiness probe GET /ready returns HTTP 200 with db: ok and redis: ok — Latency: 129ms, Body: {"ok":true,"status":"ready","db":"ok","redis":"ok"}
+
+Raw /ready Response:
+HTTP/1.1 200 OK
+X-Powered-By: Express
+X-Request-Id: req_a5c7a978b51239ee06abdf1a
+Content-Type: application/json; charset=utf-8
+Content-Length: 51
+ETag: W/"33-Hq/JuhG30dWbqw8rHiy0wNYWTos"
+Date: Fri, 13 Nov 2026 13:32:06 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"ok":true,"status":"ready","db":"ok","redis":"ok"}
+
+[PASS] Readiness alias GET /health/ready returns HTTP 200 matching /ready — Latency: 114ms, Body: {"ok":true,"status":"ready","db":"ok","redis":"ok"}
+
+Raw /health/ready Response:
+HTTP/1.1 200 OK
+X-Powered-By: Express
+X-Request-Id: req_353808f041f366632339a4cc
+Content-Type: application/json; charset=utf-8
+Content-Length: 51
+ETag: W/"33-Hq/JuhG30dWbqw8rHiy0wNYWTos"
+Date: Fri, 13 Nov 2026 13:32:07 GMT
+Connection: keep-alive
+Keep-Alive: timeout=5
+
+{"ok":true,"status":"ready","db":"ok","redis":"ok"}
+
+
+--- Step 5: Container Logs Inspection ---
+[PASS] Container logs confirm db_connected event
+[PASS] Container logs confirm redis_connected event
+[PASS] Container logs confirm server_started event on port 3000
+[PASS] Container logs show zero database connection warnings or errors
+
+Captured Container Logs:
+  {"timestamp":"2026-11-13T13:32:05.943Z","level":"info","context":"AnalyticsQueueService","event":"analytics_queue_redis_ready","status":"ok"}
+  {"timestamp":"2026-11-13T13:32:06.410Z","level":"info","context":"PrismaService","event":"db_connected","status":"ok"}
+  {"timestamp":"2026-11-13T13:32:06.430Z","level":"info","context":"RedisCacheService","event":"redis_connected","status":"ok"}
+  {"timestamp":"2026-11-13T13:32:06.440Z","level":"info","context":"NestFactory","message":"Starting Nest application..."}
+  {"timestamp":"2026-11-13T13:32:06.440Z","level":"info","context":"InstanceLoader","message":"LoggingModule dependencies initialized"}
+  {"timestamp":"2026-11-13T13:32:06.440Z","level":"info","context":"InstanceLoader","message":"ThrottlerModule dependencies initialized"}
+  {"timestamp":"2026-11-13T13:32:06.440Z","level":"info","context":"InstanceLoader","message":"JwtModule dependencies initialized"}
+  {"timestamp":"2026-11-13T13:32:06.441Z","level":"info","context":"InstanceLoader","message":"CacheModule dependencies initialized"}
+  {"timestamp":"2026-11-13T13:32:06.441Z","level":"info","context":"InstanceLoader","message":"PrismaModule dependencies initialized"}
+  {"timestamp":"2026-11-13T13:32:06.441Z","level":"info","context":"InstanceLoader","message":"AppModule dependencies initialized"}
+  {"timestamp":"2026-11-13T13:32:06.441Z","level":"info","context":"InstanceLoader","message":"HealthModule dependencies initialized"}
+  {"timestamp":"2026-11-13T13:32:06.441Z","level":"info","context":"InstanceLoader","message":"AnalyticsModule dependencies initialized"}
+  {"timestamp":"2026-11-13T13:32:06.441Z","level":"info","context":"InstanceLoader","message":"AuthModule dependencies initialized"}
+  {"timestamp":"2026-11-13T13:32:06.441Z","level":"info","context":"InstanceLoader","message":"LinksModule dependencies initialized"}
+  {"timestamp":"2026-11-13T13:32:06.441Z","level":"info","context":"RoutesResolver","message":"HealthController {/}:"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RouterExplorer","message":"Mapped {/health, GET} route"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RouterExplorer","message":"Mapped {/ready, GET} route"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RouterExplorer","message":"Mapped {/health/ready, GET} route"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RoutesResolver","message":"AuthController {/auth}:"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RouterExplorer","message":"Mapped {/auth/login, POST} route"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RoutesResolver","message":"LinksController {/links}:"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RouterExplorer","message":"Mapped {/links, POST} route"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RouterExplorer","message":"Mapped {/links, GET} route"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/search, GET} route"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/:id/analytics, GET} route"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/:id, GET} route"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/:id, PATCH} route"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/:id, DELETE} route"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RoutesResolver","message":"RedirectController {/r}:"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"RouterExplorer","message":"Mapped {/r/:code, GET} route"}
+  {"timestamp":"2026-11-13T13:32:06.442Z","level":"info","context":"NestApplication","message":"Nest application successfully started"}
+  {"timestamp":"2026-11-13T13:32:06.443Z","level":"info","context":"Bootstrap","event":"server_started","port":3000,"host":"[REDACTED_IP]"}
+  {"timestamp":"2026-11-13T13:32:06.809Z","level":"info","context":"HTTP","event":"http_request","request_id":"req_a5c7a978b51239ee06abdf1a","method":"GET","route":"/ready","status_code":200,"latency_ms":42.54}
+  {"timestamp":"2026-11-13T13:32:06.921Z","level":"info","context":"HTTP","event":"http_request","request_id":"req_4c30d8e8a4bd36924969b0bf","method":"GET","route":"/health","status_code":200,"latency_ms":2.92}
+  {"timestamp":"2026-11-13T13:32:07.040Z","level":"info","context":"HTTP","event":"http_request","request_id":"req_353808f041f366632339a4cc","method":"GET","route":"/health/ready","status_code":200,"latency_ms":11.71}
+
+--- Step 6: Container Cleanup ---
+Container "bootcamp-api-fix-verify" stopped and removed.
+[PASS] Container verified completely removed from Docker
+
+--- Step 7: Verify Development PostgreSQL and Redis DB 0 Untouched ---
+[PASS] Development PostgreSQL database (upsk_sdf) completely unchanged — Links: 25 -> 25, ClickEvents: 0 -> 0
+[PASS] Development Redis DB 0 completely unchanged — Key count: 188 -> 188
+
+====================================================================
+FIX RECOVERY RESULTS: 15 PASSED, 0 FAILED
+====================================================================
+

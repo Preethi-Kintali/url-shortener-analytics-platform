@@ -1,0 +1,30 @@
+====================================================================
+Module 09: Testing Pitfalls & Failure Modes Reproduction
+Timestamp: 2026-11-13T08:45:52.232Z
+====================================================================
+
+--- EXPERIMENT 1: Test Accidentally Targets Real Database (upsk_sdf) ---
+Scenario: CI or local script inadvertently inherits development DATABASE_URL.
+[PASS] EXPERIMENT 1.1: Pre-flight isolation validator intercepts real DB target and halts execution — caught="Database URL validation failed: CRITICAL SAFETY VIOLATION: Target database "upsk_sdf" is not the approved test database "upsk_sdf_test"! Refusing execution."
+[PASS] EXPERIMENT 1.2: Confirmed danger: Without pre-flight guard, test teardown would wipe real data — DATA_LOSS_DISASTER: 24 user links and analytics wiped from development DB!
+
+--- EXPERIMENT 2: Missing Assertions & False Confidence in Edge Cases ---
+Scenario: Test asserts generic status (200/302) but fails to assert Location header or DB integrity.
+[PASS] EXPERIMENT 2.1: Weak assertion falsely passes despite malicious Location header — weakAssertStatus=302 -> passed=true
+[PASS] EXPERIMENT 2.2: Strict assertion catches the edge case and rejects malicious Location header — expected="https://docs.example.com/legitimate-page", got="https://attacker.evil.com/phishing"
+
+--- EXPERIMENT 3: Flaky Test Due to Shared State Across Runs ---
+Scenario: Test run 1 creates unique records without cleaning up. Test run 2 crashes on duplicate keys.
+[RUN 1] Executing test iteration 1 without cleanup...
+[PASS] EXPERIMENT 3.1: Run 1 passes successfully and commits record to database — idempotencyKey=fixed_shared_key_12345
+[RUN 2] Executing identical test iteration 2 with shared dirty state...
+[PASS] EXPERIMENT 3.2: Run 2 crashes with P2002 Unique Constraint Violation due to uncleaned shared state — code=P2002, meta={"modelName":"ClickEvent","target":["idempotency_key"]}
+[CLEANUP & FIX] Applying deterministic cleanup before Run 3...
+[PASS] EXPERIMENT 3.3: Run 3 passes deterministically after applying automated cleanup — idempotencyKey=fixed_shared_key_12345
+
+[TEARDOWN] Cleaning up experiment fixtures from test database...
+
+====================================================================
+SUMMARY: passed=7, failed=0
+====================================================================
+Evidence saved to: D:\Knack labs\progress\evidence\module-09\test-break-repro.txt

@@ -1,0 +1,73 @@
+====================================================================
+Module 08 BREAK Reproduction: to_tsquery() vs plainto_tsquery()
+Timestamp: 2026-11-13T05:11:10.160Z
+====================================================================
+
+Parameterized Broken SQL:
+SELECT "id", "code", "long_url", "tags"
+FROM "public"."links"
+WHERE "created_by" = $1
+  AND to_tsvector('english', "long_url" || ' ' || regexp_replace("long_url", '[^[:alnum:]]+', ' ', 'g') || ' ' || "code" || ' ' || array_to_string("tags", ' ')) @@ to_tsquery('english', $2)
+ORDER BY "created_at" DESC
+LIMIT 20
+
+Parameterized Safe Fix SQL:
+SELECT "id", "code", "long_url", "tags"
+FROM "public"."links"
+WHERE "created_by" = $1
+  AND to_tsvector('english', "long_url" || ' ' || regexp_replace("long_url", '[^[:alnum:]]+', ' ', 'g') || ' ' || "code" || ' ' || array_to_string("tags", ' ')) @@ plainto_tsquery('english', $2)
+ORDER BY "created_at" DESC
+LIMIT 20
+
+--- Case: Ordinary multi-word phrase with space | input="spring launch" ---
+[BROKEN to_tsquery] FAILED -> prismaCode=P2010, pgSqlState=42601, message=ERROR: syntax error in tsquery: "spring launch"
+[PASS] to_tsquery() fails with syntax error (SQLSTATE 42601) on "spring launch" — prismaCode=P2010, pgSqlState=42601, message=ERROR: syntax error in tsquery: "spring launch"
+[SAFE plainto_tsquery] OK -> parsed="'spring' & 'launch'", hits=1, codes=[m8brk01]
+[PASS] plainto_tsquery() safely handles "spring launch" without syntax error — parsed="'spring' & 'launch'", hits=1
+[PROD Prisma contains/ILIKE] OK -> hits=0 (no SQL/tsquery syntax error)
+[PASS] Production Prisma parameterized contains handles "spring launch" safely — hits=0
+
+--- Case: URL with colon/slashes pasted into search box | input="https://docs.example.com/spring-launch" ---
+[BROKEN to_tsquery] FAILED -> prismaCode=P2010, pgSqlState=42601, message=ERROR: syntax error in tsquery: "https://docs.example.com/spring-launch"
+[PASS] to_tsquery() fails with syntax error (SQLSTATE 42601) on "https://docs.example.com/spring-launch" — prismaCode=P2010, pgSqlState=42601, message=ERROR: syntax error in tsquery: "https://docs.example.com/spring-launch"
+[SAFE plainto_tsquery] OK -> parsed="'docs.example.com/spring-launch' & 'docs.example.com' & '/spring-launch'", hits=1, codes=[m8brk01]
+[PASS] plainto_tsquery() safely handles "https://docs.example.com/spring-launch" without syntax error — parsed="'docs.example.com/spring-launch' & 'docs.example.com' & '/spring-launch'", hits=1
+[PROD Prisma contains/ILIKE] OK -> hits=1 (no SQL/tsquery syntax error)
+[PASS] Production Prisma parameterized contains handles "https://docs.example.com/spring-launch" safely — hits=1
+
+--- Case: Ordinary phrase with parentheses | input="getting started (guide)" ---
+[BROKEN to_tsquery] FAILED -> prismaCode=P2010, pgSqlState=42601, message=ERROR: syntax error in tsquery: "getting started (guide)"
+[PASS] to_tsquery() fails with syntax error (SQLSTATE 42601) on "getting started (guide)" — prismaCode=P2010, pgSqlState=42601, message=ERROR: syntax error in tsquery: "getting started (guide)"
+[SAFE plainto_tsquery] OK -> parsed="'get' & 'start' & 'guid'", hits=1, codes=[m8brk01]
+[PASS] plainto_tsquery() safely handles "getting started (guide)" without syntax error — parsed="'get' & 'start' & 'guid'", hits=1
+[PROD Prisma contains/ILIKE] OK -> hits=0 (no SQL/tsquery syntax error)
+[PASS] Production Prisma parameterized contains handles "getting started (guide)" safely — hits=0
+
+--- Case: Trailing punctuation / exclamation mark | input="deals!" ---
+[BROKEN to_tsquery] FAILED -> prismaCode=P2010, pgSqlState=42601, message=ERROR: syntax error in tsquery: "deals!"
+[PASS] to_tsquery() fails with syntax error (SQLSTATE 42601) on "deals!" — prismaCode=P2010, pgSqlState=42601, message=ERROR: syntax error in tsquery: "deals!"
+[SAFE plainto_tsquery] OK -> parsed="'deal'", hits=1, codes=[m8brk02]
+[PASS] plainto_tsquery() safely handles "deals!" without syntax error — parsed="'deal'", hits=1
+[PROD Prisma contains/ILIKE] OK -> hits=0 (no SQL/tsquery syntax error)
+[PASS] Production Prisma parameterized contains handles "deals!" safely — hits=0
+
+--- Case: Dangling boolean operator in user text | input="spring &" ---
+[BROKEN to_tsquery] FAILED -> prismaCode=P2010, pgSqlState=42601, message=ERROR: no operand in tsquery: "spring &"
+[PASS] to_tsquery() fails with syntax error (SQLSTATE 42601) on "spring &" — prismaCode=P2010, pgSqlState=42601, message=ERROR: no operand in tsquery: "spring &"
+[SAFE plainto_tsquery] OK -> parsed="'spring'", hits=1, codes=[m8brk01]
+[PASS] plainto_tsquery() safely handles "spring &" without syntax error — parsed="'spring'", hits=1
+[PROD Prisma contains/ILIKE] OK -> hits=0 (no SQL/tsquery syntax error)
+[PASS] Production Prisma parameterized contains handles "spring &" safely — hits=0
+
+--- Case: Plus signs in technical term | input="c++ guide" ---
+[BROKEN to_tsquery] FAILED -> prismaCode=P2010, pgSqlState=42601, message=ERROR: syntax error in tsquery: "c++ guide"
+[PASS] to_tsquery() fails with syntax error (SQLSTATE 42601) on "c++ guide" — prismaCode=P2010, pgSqlState=42601, message=ERROR: syntax error in tsquery: "c++ guide"
+[SAFE plainto_tsquery] OK -> parsed="'c' & 'guid'", hits=1, codes=[m8brk02]
+[PASS] plainto_tsquery() safely handles "c++ guide" without syntax error — parsed="'c' & 'guid'", hits=1
+[PROD Prisma contains/ILIKE] OK -> hits=0 (no SQL/tsquery syntax error)
+[PASS] Production Prisma parameterized contains handles "c++ guide" safely — hits=0
+
+====================================================================
+SUMMARY: passed=18, failed=0
+====================================================================
+Evidence saved to: D:\Knack labs\progress\evidence\module-08\tsquery-break-repro.txt

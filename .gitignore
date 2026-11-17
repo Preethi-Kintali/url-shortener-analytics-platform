@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+api/node_modules/
+.pnpm-store/
+
+# Build artifacts
+dist/
+api/dist/
+build/
+*.tsbuildinfo
+
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+api/.env
+api/.env.*
+!api/.env.example
+
+# Operating System & IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Docker & local caches
+*.local
+
+# Private Upsk assessment & session metadata
+progress/*.json
+progress/evidence/**/*.json
+

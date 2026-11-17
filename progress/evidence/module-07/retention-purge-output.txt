@@ -1,0 +1,24 @@
+=== Retention Purge (30 days) ===
+{"timestamp":"2026-11-13T08:36:55.083Z","level":"info","context":"AnalyticsQueueService","event":"analytics_queue_redis_ready","status":"ok"}
+{"timestamp":"2026-11-13T08:36:55.110Z","level":"info","context":"PrismaService","event":"db_connected","status":"ok"}
+{"timestamp":"2026-11-13T08:36:55.115Z","level":"info","context":"NestFactory","message":"Starting Nest application..."}
+{"timestamp":"2026-11-13T08:36:55.115Z","level":"info","context":"InstanceLoader","message":"PurgeModule dependencies initialized"}
+{"timestamp":"2026-11-13T08:36:55.116Z","level":"info","context":"InstanceLoader","message":"LoggingModule dependencies initialized"}
+{"timestamp":"2026-11-13T08:36:55.116Z","level":"info","context":"InstanceLoader","message":"PrismaModule dependencies initialized"}
+{"timestamp":"2026-11-13T08:36:55.116Z","level":"info","context":"InstanceLoader","message":"AnalyticsModule dependencies initialized"}
+{"timestamp":"2026-11-13T08:36:55.141Z","level":"info","context":"AnalyticsService","event":"analytics_retention_purged","retention_days":30,"cutoff_at":"2026-10-14T08:36:55.117Z","deleted_count":1}
+{"timestamp":"2026-11-13T08:36:55.142Z","level":"info","context":"PurgeBootstrap","event":"analytics_purge_cli_completed","retention_days":30,"cutoff_at":"2026-10-14T08:36:55.117Z","deleted_count":1}
+Remaining clicks for retention test link: 1
+
+=== Retention Purge (0 days dev verification) ===
+{"timestamp":"2026-11-13T08:36:58.283Z","level":"info","context":"AnalyticsQueueService","event":"analytics_queue_redis_ready","status":"ok"}
+{"timestamp":"2026-11-13T08:36:58.316Z","level":"info","context":"PrismaService","event":"db_connected","status":"ok"}
+{"timestamp":"2026-11-13T08:36:58.319Z","level":"info","context":"NestFactory","message":"Starting Nest application..."}
+{"timestamp":"2026-11-13T08:36:58.320Z","level":"info","context":"InstanceLoader","message":"PurgeModule dependencies initialized"}
+{"timestamp":"2026-11-13T08:36:58.320Z","level":"info","context":"InstanceLoader","message":"LoggingModule dependencies initialized"}
+{"timestamp":"2026-11-13T08:36:58.320Z","level":"info","context":"InstanceLoader","message":"PrismaModule dependencies initialized"}
+{"timestamp":"2026-11-13T08:36:58.320Z","level":"info","context":"InstanceLoader","message":"AnalyticsModule dependencies initialized"}
+{"timestamp":"2026-11-13T08:36:58.345Z","level":"info","context":"AnalyticsService","event":"analytics_retention_purged","retention_days":0,"cutoff_at":"2026-11-13T08:36:58.321Z","deleted_count":3}
+{"timestamp":"2026-11-13T08:36:58.345Z","level":"info","context":"PurgeBootstrap","event":"analytics_purge_cli_completed","retention_days":0,"cutoff_at":"2026-11-13T08:36:58.321Z","deleted_count":3}
+Remaining clicks for retention test link: 0
+Parent link preserved: true

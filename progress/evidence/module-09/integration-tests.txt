@@ -1,0 +1,35 @@
+====================================================================
+Module 09: Integration-Heavy Testing Suite
+Timestamp: 2026-11-13T15:15:02.847Z
+====================================================================
+
+--- SECTION 0: Pre-flight Isolation & Safety Verification ---
+[TEST-SETUP] Target Test Database: postgresql://postgres:***@localhost:5432/upsk_sdf_test?schema=public
+[TEST-SETUP] Target Test Redis: redis://localhost:6379/1
+[TEST-SETUP] Target Test Port: 3199
+[PASS] Database safety pre-flight: Target database is explicitly upsk_sdf_test on port 5432 (env=test) — dbName=upsk_sdf_test, host=localhost, port=5432, env=test
+[PASS] Redis isolation pre-flight: Target Redis is explicitly DB 1 on port 6379 — dbIndex=1, host=localhost, port=6379
+[PASS] Redis connection check: Connected to isolated Redis DB 1 and flushed DB 1 only
+
+--- SECTION 1: Starting Isolated NestJS API Instance ---
+[SETUP] Test API server live at http://127.0.0.1:3199
+[AUTH] Alice & Bob authenticated successfully against test instance
+
+--- SECTION 2: Official Acceptance Criteria Tests ---
+[PASS] CRITERION 1: Create Link persists valid URL, normalizes/deduplicates tags, and returns 201 — status=201, code=tBB9Pks, tags=["integration","testing"]
+[PASS] CRITERION 2: Redirect correctness: GET /r/:code returns HTTP 302 with exact Location header — status=302, location=https://docs.example.com/getting-started/module-09?utm_source=test
+[PASS] CRITERION 3: Authentication protection: Protected endpoints reject missing/invalid JWT with 401 — noTokenStatus=401, badTokenStatus=401, code=UNAUTHORIZED
+[PASS] CRITERION 4: Authorization / IDOR protection: Cross-owner read/update/delete returns 404 — get=404, patch=404, delete=404
+[PASS] CRITERION 4 (Integrity): Attacker patch attempt did not modify owner resource in database — long_url=https://docs.example.com/getting-started/module-09?utm_source=test
+[PASS] CRITERION 5: Retention enforcement: Purge CLI cleans records older than retention period — before=2, purged=1, remaining=1
+[PASS] CRITERION 6: URL validation regression: Malicious, credential-containing and non-HTTP URLs rejected with 400 — tested=7/7 bypass strings rejected
+[PASS] CRITERION 7: Analytics idempotency: Application processing catches duplicate and returns duplicate_ignored, backed by P2002 constraint with count=1 — firstStatus=persisted, secondStatus=duplicate_ignored, dbP2002=true, totalCount=1
+[PASS] SAFETY VERIFICATION: Development database (upsk_sdf) row count unchanged (zero cross-database leaks) — links=25->25, clicks=0->0
+[PASS] SAFETY VERIFICATION: Development Redis DB 0 key count unchanged (zero cross-database leaks) — db0Keys=188->188
+
+[TEARDOWN] Stopping test API instance and disconnecting test clients...
+
+====================================================================
+SUMMARY: passed=13, failed=0
+====================================================================
+Evidence saved to: D:\Knack labs\progress\evidence\module-09\integration-tests.txt

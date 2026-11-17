@@ -1,0 +1,43 @@
+=== GRACEFUL SHUTDOWN LOG ===
+Signal Sent: SIGTERM
+Shutdown Duration: 31ms
+Exit Code: null
+Signal: SIGTERM
+Server Log Output:
+{"timestamp":"2026-11-13T14:35:10.258Z","level":"info","context":"AnalyticsQueueService","event":"analytics_queue_redis_ready","status":"ok"}
+{"timestamp":"2026-11-13T14:35:10.284Z","level":"info","context":"PrismaService","event":"db_connected","status":"ok"}
+{"timestamp":"2026-11-13T14:35:10.298Z","level":"info","context":"RedisCacheService","event":"redis_connected","status":"ok"}
+{"timestamp":"2026-11-13T14:35:10.306Z","level":"info","context":"NestFactory","message":"Starting Nest application..."}
+{"timestamp":"2026-11-13T14:35:10.306Z","level":"info","context":"InstanceLoader","message":"LoggingModule dependencies initialized"}
+{"timestamp":"2026-11-13T14:35:10.306Z","level":"info","context":"InstanceLoader","message":"ThrottlerModule dependencies initialized"}
+{"timestamp":"2026-11-13T14:35:10.306Z","level":"info","context":"InstanceLoader","message":"JwtModule dependencies initialized"}
+{"timestamp":"2026-11-13T14:35:10.306Z","level":"info","context":"InstanceLoader","message":"CacheModule dependencies initialized"}
+{"timestamp":"2026-11-13T14:35:10.306Z","level":"info","context":"InstanceLoader","message":"PrismaModule dependencies initialized"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"InstanceLoader","message":"AppModule dependencies initialized"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"InstanceLoader","message":"HealthModule dependencies initialized"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"InstanceLoader","message":"AnalyticsModule dependencies initialized"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"InstanceLoader","message":"AuthModule dependencies initialized"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"InstanceLoader","message":"LinksModule dependencies initialized"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RoutesResolver","message":"HealthController {/}:"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RouterExplorer","message":"Mapped {/health, GET} route"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RouterExplorer","message":"Mapped {/ready, GET} route"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RouterExplorer","message":"Mapped {/health/ready, GET} route"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RoutesResolver","message":"AuthController {/auth}:"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RouterExplorer","message":"Mapped {/auth/login, POST} route"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RoutesResolver","message":"LinksController {/links}:"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RouterExplorer","message":"Mapped {/links, POST} route"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RouterExplorer","message":"Mapped {/links, GET} route"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/search, GET} route"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/:id/analytics, GET} route"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/:id, GET} route"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/:id, PATCH} route"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RouterExplorer","message":"Mapped {/links/:id, DELETE} route"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RoutesResolver","message":"RedirectController {/r}:"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"RouterExplorer","message":"Mapped {/r/:code, GET} route"}
+{"timestamp":"2026-11-13T14:35:10.307Z","level":"info","context":"NestApplication","message":"Nest application successfully started"}
+{"timestamp":"2026-11-13T14:35:10.308Z","level":"info","context":"Bootstrap","event":"server_started","port":3110,"host":"[REDACTED_IP]"}
+{"timestamp":"2026-11-13T14:35:10.508Z","level":"info","context":"HTTP","event":"http_request","request_id":"req_caa17fb7f7bf0e824fd94732","method":"GET","route":"/health","status_code":200,"latency_ms":9.62}
+{"timestamp":"2026-11-13T14:35:10.524Z","level":"info","context":"HTTP","event":"http_request","request_id":"req_9650f4be6fd7065e0640ad45","method":"GET","route":"/health","status_code":200,"latency_ms":2.15}
+{"timestamp":"2026-11-13T14:35:10.542Z","level":"info","context":"HTTP","event":"http_request","request_id":"req_d53e9723c2a3801f711b2fb4","method":"GET","route":"/ready","status_code":200,"latency_ms":10.89}
+{"timestamp":"2026-11-13T14:35:10.551Z","level":"info","context":"HTTP","event":"http_request","request_id":"req_ca0820137d366f996fae8eef","method":"GET","route":"/health/ready","status_code":200,"latency_ms":5.93}
+

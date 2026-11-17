@@ -1,0 +1,14 @@
+=== DOCKER BUILD EVIDENCE ===
+Command: cd api; docker build -t bootcamp-api .
+Image Name: bootcamp-api:latest
+Image ID: 84d21adea15f
+Size: 406MB
+Base Image: node:20-alpine
+Multi-stage stages: builder -> runner
+User: nestjs (UID 1001, GID 1001, non-root)
+Entrypoint / CMD: ["node", "dist/main"]
+Port Expose: 3000
+Prisma Client: Generated cleanly (v6.19.3)
+DevDependencies: Pruned cleanly in runner stage
+Status: SUCCESS (Exit Code 0)
+

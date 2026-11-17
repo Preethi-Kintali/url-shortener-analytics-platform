@@ -1,0 +1,14 @@
+=== PRISMA MIGRATE DEPLOY EVIDENCE ===
+Command: npx prisma migrate deploy
+Database: postgresql://postgres:***@localhost:5432/upsk_sdf_test?schema=public
+Exit Code: 0
+Output:
+Environment variables loaded from .env
+Prisma schema loaded from prisma\schema.prisma
+Datasource "db": PostgreSQL database "upsk_sdf_test", schema "public" at "localhost:5432"
+
+3 migrations found in prisma/migrations
+
+
+No pending migrations to apply.
+

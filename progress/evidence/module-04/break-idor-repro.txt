@@ -1,0 +1,16 @@
+==========================================================
+Module 04 BREAK Drill: Ownership / IDOR Symptom Reproduction
+Timestamp: 2026-11-11T04:38:30.397Z
+==========================================================
+
+[1] POST /auth/login (Alice) -> HTTP 200, principal_id=principal_a
+[2] POST /auth/login (Bob)   -> HTTP 200, principal_id=principal_b
+[3] POST /links (Alice)      -> HTTP 201, id=83c1a6b4-e694-450b-ab7c-bd20de8813d5, created_by=principal_a
+[4] GET /links/83c1a6b4-e694-450b-ab7c-bd20de8813d5 (No token) -> HTTP 401
+[5] GET /links/83c1a6b4-e694-450b-ab7c-bd20de8813d5 (Bob JWT)  -> HTTP 200 (EXPECTED: HTTP 404)
+    Response Body: {"id":"83c1a6b4-e694-450b-ab7c-bd20de8813d5","code":"3EXywF1","short_url":"http://localhost:3000/r/3EXywF1","long_url":"https://example.com/alice-private-campaign","created_at":"2026-11-11T04:38:36.055Z","created_by":"principal_a"}
+
+==========================================================
+REPRODUCED: Cross-principal read succeeded (HTTP 200) — IDOR vulnerability confirmed!
+==========================================================
+Evidence saved to: D:\Knack labs\progress\evidence\module-04\break-idor-repro.txt

@@ -1,0 +1,31 @@
+====================================================================
+Module 08: PostgreSQL-Native Search, Tags, Indexes & Query Plan Suite
+Timestamp: 2026-11-13T08:37:16.344Z
+====================================================================
+
+--- SECTION A: PostgreSQL Extensions, Indexes, Generated SQL & EXPLAIN ANALYZE ---
+[PASS] PostgreSQL pg_trgm extension and composite/GIN search indexes exist on links table — indexes=links_code_key,links_code_trgm_idx,links_created_by_created_at_idx,links_created_by_idx,links_long_url_trgm_idx,links_pkey,links_tags_gin_idx
+[PASS] EXPLAIN ANALYZE uses pg_trgm GIN indexes (links_long_url_trgm_idx + links_code_trgm_idx) without Seq Scan on links
+[PASS] EXPLAIN ANALYZE uses GIN array index (links_tags_gin_idx) for tag filtering without Seq Scan
+[PASS] EXPLAIN ANALYZE uses composite B-tree index (links_created_by_created_at_idx) for owner-scoped ordering
+
+--- SECTION B: Live GET /links/search Behavior, Auth/IDOR & Validation (Port 3128) ---
+[PASS] Unauthenticated GET /links/search returns HTTP 401 — status=401
+[PASS] GET /links/search rejects principal_id query parameter with HTTP 400 — status=400
+[PASS] POST /links normalizes, deduplicates, and persists tags into PostgreSQL — tags=["marketing","spring-sale"]
+[PASS] Case-insensitive URL substring search (?q=CAMPAIGN-ALPHA) returns only Alice matching links — total=2
+[PASS] GET /links/search supports case-insensitive short code matching — slice=VXQEL, hits=1
+[PASS] Tag filter (?tag=DOCS) matches only Alice links carrying normalized tag docs — total=2
+[PASS] Combined q + tag filters intersect cleanly with AND semantics — total=1
+[PASS] Cross-owner search isolation prevents Bob from seeing Alice matching links — total=0
+[PASS] Pagination returns accurate slices, exact { page, page_size, total } metadata, and zero duplicates across pages — total=18, fetchedUnique=6
+[PASS] Invalid pagination, oversized q, control chars, and extra params all return HTTP 400 — checked=15/15
+[PASS] Empty search returns HTTP 200 with { data: [], pagination: { page: 1, page_size: 20, total: 0 } }
+[PASS] PATCH /links/:id updates tags cleanly and immediately reflects in search queries
+[PASS] Server logs never expose destination URLs, raw search terms, or JWTs
+
+====================================================================
+SUMMARY: passed=17, failed=0
+====================================================================
+Evidence saved to: D:\Knack labs\progress\evidence\module-08\search-tests.txt
+Query plans saved to: D:\Knack labs\progress\evidence\module-08\search-query-plans.txt

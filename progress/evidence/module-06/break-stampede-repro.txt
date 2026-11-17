@@ -1,0 +1,17 @@
+====================================================================
+Module 06 BREAK Reproduction: Concurrent Hot-Key Miss Spike
+Timestamp: 2026-11-12T09:17:54.260Z
+====================================================================
+
+--- Part 1: 25 Concurrent Requests on Expired Key (40ms DB Latency) ---
+HTTP-equivalent resolved redirects: 25/25
+PostgreSQL findUnique calls triggered: 1
+Redis setRedirectTarget writes triggered: 1
+
+--- Part 2: Live HTTP Burst (20 Concurrent GET /r/:code After TTL Expiry) ---
+Link code: KEBxnkx
+HTTP 302 responses: 20/20
+Burst cache_miss events logged for same code: 2
+Burst cache_populated events logged for same code: 1
+  {"timestamp":"2026-11-12T09:18:00.966Z","level":"info","context":"RedisCacheService","event":"cache_miss","layer":"redis","code":"KEBxnkx","request_id":"req-m6-burst-01"}
+  {"timestamp":"2026-11-12T09:18:00.968Z","level":"info","context":"RedisCacheService","event":"cache_miss","layer":"redis","code":"KEBxnkx","request_id":"req-m6-burst-02"}
