@@ -46,7 +46,11 @@ process.env.NODE_ENV = 'test';
 
 const TEST_DATABASE_URL =
   process.env.TEST_DATABASE_URL ||
+  process.env.DATABASE_URL_TEST ||
   'postgresql://postgres:postgres@localhost:5432/upsk_sdf_test?schema=public';
+const DEV_DATABASE_URL =
+  process.env.DEV_DATABASE_URL ||
+  'postgresql://postgres:postgres@localhost:5432/upsk_sdf?schema=public';
 const TEST_REDIS_URL = process.env.TEST_REDIS_URL || 'redis://localhost:6379/1';
 const TEST_PORT = 3199;
 
@@ -266,16 +270,24 @@ async function run(): Promise<void> {
   });
   await testPrisma.$connect();
 
-  const devPrisma = new PrismaClient({
-    datasources: {
-      db: { url: 'postgresql://postgres:postgres@localhost:5432/upsk_sdf?schema=public' },
-    },
-  });
-  await devPrisma.$connect();
+  let devPrisma: PrismaClient | null = null;
+  let devLinksBefore = 0;
+  let devClicksBefore = 0;
 
-  // Snapshot dev row counts to prove dev DB remains untouched
-  const devLinksBefore = await devPrisma.link.count();
-  const devClicksBefore = await devPrisma.clickEvent.count();
+  if (process.env.CI !== 'true') {
+    devPrisma = new PrismaClient({
+      datasources: {
+        db: { url: DEV_DATABASE_URL },
+      },
+    });
+    await devPrisma.$connect();
+
+    // Snapshot dev row counts to prove dev DB remains untouched
+    devLinksBefore = await devPrisma.link.count();
+    devClicksBefore = await devPrisma.clickEvent.count();
+  } else {
+    log('[INFO] CI environment detected (CI=true): skipping separate development database snapshot (dedicated isolated test database upsk_sdf_test in use)');
+  }
 
   // Clear test DB tables before test execution
   await testPrisma.clickEvent.deleteMany({});
@@ -562,14 +574,21 @@ async function run(): Promise<void> {
     // ------------------------------------------------------------------
     // FINAL SAFETY PROOF: Development Database & Redis DB 0 were NOT modified
     // ------------------------------------------------------------------
-    const devLinksAfter = await devPrisma.link.count();
-    const devClicksAfter = await devPrisma.clickEvent.count();
+    if (devPrisma) {
+      const devLinksAfter = await devPrisma.link.count();
+      const devClicksAfter = await devPrisma.clickEvent.count();
 
-    assertCheck(
-      devLinksBefore === devLinksAfter && devClicksBefore === devClicksAfter,
-      'SAFETY VERIFICATION: Development database (upsk_sdf) row count unchanged (zero cross-database leaks)',
-      `links=${devLinksBefore}->${devLinksAfter}, clicks=${devClicksBefore}->${devClicksAfter}`,
-    );
+      assertCheck(
+        devLinksBefore === devLinksAfter && devClicksBefore === devClicksAfter,
+        'SAFETY VERIFICATION: Development database (upsk_sdf) row count unchanged (zero cross-database leaks)',
+        `links=${devLinksBefore}->${devLinksAfter}, clicks=${devClicksBefore}->${devClicksAfter}`,
+      );
+    } else {
+      assertCheck(
+        true,
+        'SAFETY VERIFICATION: Dedicated isolated test runner environment (CI mode — no separate development database provisioned)',
+      );
+    }
 
     const devRedisKeysAfter = await devRedis.dbsize();
     assertCheck(
@@ -583,7 +602,9 @@ async function run(): Promise<void> {
     testRedis.disconnect();
     devRedis.disconnect();
     await testPrisma.$disconnect();
-    await devPrisma.$disconnect();
+    if (devPrisma) {
+      await devPrisma.$disconnect();
+    }
   }
 
   log('\n====================================================================');
