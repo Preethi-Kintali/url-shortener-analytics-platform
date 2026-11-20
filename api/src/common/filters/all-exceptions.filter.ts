@@ -282,7 +282,43 @@ export class AllExceptionsFilter implements ExceptionFilter {
       };
     }
 
-    // 4. Unknown / unhandled errors
+    // 4. Network, DNS, and Timeout failure modes
+    if (exception instanceof Error) {
+      const msg = exception.message || '';
+      const errCode = (exception as { code?: string }).code || '';
+
+      if (
+        errCode === 'ENOTFOUND' ||
+        errCode === 'EAI_AGAIN' ||
+        msg.includes('getaddrinfo') ||
+        errCode === 'ECONNREFUSED' ||
+        errCode === 'ECONNRESET' ||
+        errCode === 'ETIMEDOUT'
+      ) {
+        return {
+          statusCode: HttpStatus.SERVICE_UNAVAILABLE,
+          code: 'DEPENDENCY_UNAVAILABLE',
+          message:
+            'Upstream dependency or network resolution is temporarily unavailable. Please try again later.',
+          internalDetail: `${errCode || 'NETWORK_ERROR'}: ${msg}`,
+        };
+      }
+
+      if (
+        exception.name === 'TimeoutError' ||
+        exception.name === 'AbortError' ||
+        msg.toLowerCase().includes('timeout')
+      ) {
+        return {
+          statusCode: HttpStatus.GATEWAY_TIMEOUT,
+          code: 'GATEWAY_TIMEOUT',
+          message: 'Upstream operation timed out. Please try again later.',
+          internalDetail: msg,
+        };
+      }
+    }
+
+    // 5. Unknown / unhandled errors
     const detail = exception instanceof Error ? exception.message : String(exception);
     return {
       statusCode: HttpStatus.INTERNAL_SERVER_ERROR,

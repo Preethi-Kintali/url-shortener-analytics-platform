@@ -1,13 +1,45 @@
-name: ci
+name: CI/CD Pipeline
 
 on:
-  pull_request:
   push:
+    branches: [main]
+  pull_request:
     branches: [main]
 
 jobs:
-  nestjs:
+  lint:
+    name: Lint & Typecheck
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 12.16.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+          cache-dependency-path: api/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Static Typecheck
+        run: npx tsc --noEmit
+
+  test:
+    name: Automated Test Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: api
@@ -34,32 +66,142 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-
     env:
       DATABASE_URL_TEST: postgresql://postgres:postgres@localhost:5432/upsk_sdf_test?schema=public
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/upsk_sdf_test?schema=public
       REDIS_URL: redis://localhost:6379
       JWT_SECRET: ci-test-secret-value-must-be-at-least-32-chars-long!
       PORT: 3000
-
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
         with:
           version: 12.16.1
-      - uses: actions/setup-node@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: pnpm
           cache-dependency-path: api/pnpm-lock.yaml
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
       - name: Generate Prisma Client
         run: npx prisma generate
-      - name: Run one-off database migrations
+
+      - name: Run database migrations
         run: npx prisma migrate deploy
-      - name: Build production bundle
-        run: pnpm run build
-      - name: Run integration tests
+
+      - name: Run test suite
         run: pnpm run test
 
+  build:
+    name: Build Docker Container
+    needs: [lint, test]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image with Git SHA tag
+        run: |
+          docker build -t myservice:${{ github.sha }} ./api
+
+      - name: Image size guardrail check
+        run: |
+          IMAGE_BYTES=$(docker image inspect myservice:${{ github.sha }} --format='{{.Size}}')
+          MAX_BYTES=600000000 # 600MB threshold
+          echo "Image size: $IMAGE_BYTES bytes (max limit: $MAX_BYTES bytes)"
+          if [ "$IMAGE_BYTES" -gt "$MAX_BYTES" ]; then
+            echo "Error: Image size exceeds maximum allowed budget!"
+            exit 1
+          fi
+
+  push:
+    name: Push to Container Registry
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Log in to Container Registry
+        if: env.REGISTRY_PASSWORD != ''
+        env:
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+        run: |
+          echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login ghcr.io -u "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
+
+      - name: Tag and push image
+        if: env.REGISTRY_PASSWORD != ''
+        env:
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          REGISTRY_PATH: ${{ secrets.REGISTRY_PATH }}
+        run: |
+          docker tag myservice:${{ github.sha }} ${{ secrets.REGISTRY_PATH }}:${{ github.sha }}
+          docker tag myservice:${{ github.sha }} ${{ secrets.REGISTRY_PATH }}:latest
+          docker push ${{ secrets.REGISTRY_PATH }}:${{ github.sha }}
+          docker push ${{ secrets.REGISTRY_PATH }}:latest
+          echo "Pushed image tagged: ${{ secrets.REGISTRY_PATH }}:${{ github.sha }}"
+
+  deploy:
+    name: Deploy to Production & Verify
+    needs: [test, build]
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Trigger Deployment
+        run: |
+          echo "Deploying immutable image tagged myservice:${{ github.sha }} to production..."
+          # Deploy command using platform CLI or API webhook:
+          # railway up --detach / fly deploy --image myservice:${{ github.sha }}
+
+      - name: Wait for readiness check
+        run: |
+          echo "Waiting for deployment to become ready..."
+          SERVICE_URL="${{ secrets.SERVICE_URL || 'http://localhost:3000' }}"
+          for i in $(seq 1 30); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$SERVICE_URL/ready" || echo "000")
+            if [ "$STATUS" = "200" ]; then
+              echo "Readiness check passed on attempt $i"
+              exit 0
+            fi
+            echo "Attempt $i: status $STATUS, waiting 5s..."
+            sleep 5
+          done
+          echo "Readiness check failed after 30 attempts"
+          exit 1
+
+      - name: Post-deploy smoke test
+        run: |
+          SERVICE_URL="${{ secrets.SERVICE_URL || 'http://localhost:3000' }}"
+          echo "Running smoke tests against $SERVICE_URL..."
+          LIVE=$(curl -s "$SERVICE_URL/live")
+          READY=$(curl -s "$SERVICE_URL/ready")
+          echo "Live probe response: $LIVE"
+          echo "Ready probe response: $READY"
+
+          METRICS_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$SERVICE_URL/metrics")
+          if [ "$METRICS_CODE" != "200" ]; then
+            echo "Metrics endpoint returned $METRICS_CODE, expected 200"
+            exit 1
+          fi
+
+      - name: Automated rollback on verification failure
+        if: failure()
+        run: |
+          echo "Deployment verification failed! Triggering automated rollback..."
+          # Automated rollback trigger: railway rollback / fly releases rollback

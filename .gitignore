@@ -34,7 +34,16 @@ pnpm-debug.log*
 # Docker & local caches
 *.local
 
+# Oversized binary exports (>100MB GitHub limit)
+artifacts/*.tar
+
+# Transient authentication logs
+login_*.txt
+login_stdout.txt
+login_stderr.txt
+
 # Private Upsk assessment & session metadata
+progress/**/*.json
 progress/*.json
 progress/evidence/**/*.json
 

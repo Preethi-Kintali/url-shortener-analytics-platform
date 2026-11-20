@@ -6,15 +6,19 @@ type LogLevel = 'info' | 'warn' | 'error' | 'debug' | 'verbose';
 
 @Injectable()
 export class StructuredLoggerService implements LoggerService {
+  private readonly serviceName = 'url-shortener';
+
   private writeEntry(
     level: LogLevel,
     message: unknown,
     context?: string,
     extra?: Record<string, unknown>,
   ): void {
+    const timestamp = new Date().toISOString();
     const entry: Record<string, unknown> = {
-      timestamp: new Date().toISOString(),
+      timestamp,
       level,
+      service_name: this.serviceName,
     };
 
     if (context) {
@@ -23,6 +27,9 @@ export class StructuredLoggerService implements LoggerService {
 
     if (typeof message === 'object' && message !== null && !Array.isArray(message)) {
       Object.assign(entry, sanitizeValue(message) as Record<string, unknown>);
+      if (!entry.message) {
+        entry.message = (entry.event as string) || 'event logged';
+      }
     } else {
       entry.message = redactSensitiveText(String(message));
     }
@@ -33,9 +40,37 @@ export class StructuredLoggerService implements LoggerService {
 
     if (entry.request_id === undefined) {
       const activeRequestId = getCurrentRequestId();
-      if (activeRequestId) {
-        entry.request_id = redactSensitiveText(activeRequestId);
+      entry.request_id = activeRequestId ? redactSensitiveText(activeRequestId) : 'system';
+    }
+
+    // Hybrid mode: pretty formatting in local development unless JSON is explicitly requested
+    const isDev = process.env.NODE_ENV === 'development' || process.env.APP_ENV === 'development';
+    const forceJson = process.env.FORCE_JSON_LOGS === 'true';
+
+    if (isDev && !forceJson) {
+      const color =
+        level === 'error'
+          ? '\x1b[31m'
+          : level === 'warn'
+            ? '\x1b[33m'
+            : level === 'info'
+              ? '\x1b[32m'
+              : '\x1b[36m';
+      const reset = '\x1b[0m';
+      const prettyLine = `[${timestamp}] ${color}[${level.toUpperCase()}]${reset} [${this.serviceName}] [${entry.request_id}]: ${entry.message} ${JSON.stringify(
+        Object.fromEntries(
+          Object.entries(entry).filter(
+            ([k]) => !['timestamp', 'level', 'service_name', 'request_id', 'message'].includes(k),
+          ),
+        ),
+      )}\n`;
+
+      if (level === 'error') {
+        process.stderr.write(prettyLine);
+      } else {
+        process.stdout.write(prettyLine);
       }
+      return;
     }
 
     const line = `${JSON.stringify(entry)}\n`;
@@ -59,8 +94,11 @@ export class StructuredLoggerService implements LoggerService {
   }
 
   error(message: unknown, traceOrContext?: string, context?: string): void {
-    const resolvedContext = context ?? (traceOrContext && !traceOrContext.includes('\n') ? traceOrContext : undefined);
-    this.writeEntry('error', message, resolvedContext);
+    const resolvedContext =
+      context ?? (traceOrContext && !traceOrContext.includes('\n') ? traceOrContext : undefined);
+    const extra =
+      traceOrContext && traceOrContext.includes('\n') ? { stack: traceOrContext } : undefined;
+    this.writeEntry('error', message, resolvedContext, extra);
   }
 
   debug(message: unknown, context?: string): void {
@@ -71,4 +109,3 @@ export class StructuredLoggerService implements LoggerService {
     this.writeEntry('verbose', message, context);
   }
 }
-

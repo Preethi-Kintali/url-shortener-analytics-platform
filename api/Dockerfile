@@ -1,7 +1,10 @@
 # Multi-stage production Dockerfile
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 
 WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends openssl \
+    && rm -rf /var/lib/apt/lists/*
 
 # Enable pnpm via Corepack
 RUN corepack enable && corepack prepare pnpm@latest --activate
@@ -25,28 +28,35 @@ RUN pnpm run build
 RUN pnpm prune --prod
 
 # ----------------------------------------------------
-# Production Runner Stage
+# Stage 2: Production Runtime Stage
 # ----------------------------------------------------
-FROM node:20-alpine AS runner
+FROM node:20-slim AS runner
 
 WORKDIR /app
 
 ENV NODE_ENV=production
 ENV PORT=3000
 
+# Install curl for HEALTHCHECK and openssl for Prisma runtime
+RUN apt-get update && apt-get install -y --no-install-recommends curl openssl \
+    && rm -rf /var/lib/apt/lists/*
+
 # Create dedicated non-root user and group for security
-RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
+RUN groupadd -r appgroup && useradd -r -g appgroup -s /bin/false appuser
 
 # Copy production artifacts from builder
-COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
-COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
-COPY --from=builder --chown=nestjs:nodejs /app/prisma ./prisma
-COPY --from=builder --chown=nestjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=appuser:appgroup /app/node_modules ./node_modules
+COPY --from=builder --chown=appuser:appgroup /app/dist ./dist
+COPY --from=builder --chown=appuser:appgroup /app/prisma ./prisma
+COPY --from=builder --chown=appuser:appgroup /app/package.json ./package.json
 
-USER nestjs
+USER appuser
 
 EXPOSE 3000
 
+# Health check instruction
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD curl -f http://localhost:${PORT:-3000}/live || exit 1
+
 # Start production API server
 CMD ["node", "dist/main"]
-

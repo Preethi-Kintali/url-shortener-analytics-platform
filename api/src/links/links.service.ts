@@ -8,6 +8,7 @@ import {
 import { Link, Prisma } from '@prisma/client';
 import * as crypto from 'crypto';
 import { RedisCacheService } from '../cache/redis-cache.service';
+import { CircuitBreakerService } from '../common/resilience/circuit-breaker.service';
 import { StructuredLoggerService } from '../common/logging/structured-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateLinkDto } from './dto/create-link.dto';
@@ -48,6 +49,7 @@ export class LinksService {
     private readonly prisma: PrismaService,
     private readonly cache: RedisCacheService,
     @Optional() private readonly logger?: StructuredLoggerService,
+    @Optional() private readonly circuitBreaker?: CircuitBreakerService,
   ) {}
 
   private getBaseUrl(): string {
@@ -334,13 +336,46 @@ export class LinksService {
     code: string,
     getSelfPromise: () => Promise<{ code: string; long_url: string }>,
   ): Promise<{ code: string; long_url: string }> {
-    const link = await this.prisma.link.findUnique({
-      where: { code },
-      select: {
-        code: true,
-        longUrl: true,
-      },
-    });
+    const queryFn = async () => {
+      if (this.circuitBreaker) {
+        return await this.circuitBreaker.executeWithTimeout(
+          'database',
+          'findUniqueLink',
+          async () => {
+            return await this.prisma.link.findUnique({
+              where: { code },
+              select: {
+                code: true,
+                longUrl: true,
+              },
+            });
+          },
+          1000,
+        );
+      }
+      return await this.prisma.link.findUnique({
+        where: { code },
+        select: {
+          code: true,
+          longUrl: true,
+        },
+      });
+    };
+
+    let link: { code: string; longUrl: string } | null = null;
+    if (this.circuitBreaker) {
+      link = await this.circuitBreaker.execute(
+        'database',
+        'findUniqueLink',
+        queryFn,
+        () => ({
+          code,
+          longUrl: 'https://status.myservice.internal/degraded',
+        }),
+      );
+    } else {
+      link = await queryFn();
+    }
 
     if (!link) {
       throw new NotFoundException(`Link with code '${code}' not found`);

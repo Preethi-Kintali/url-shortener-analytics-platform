@@ -13,7 +13,7 @@ export class HealthController {
   ) {}
 
   /**
-   * Liveness Probe: GET /health
+   * Liveness Probe: GET /health and GET /live
    * Signals whether the HTTP server process is running, responsive, and not blocked.
    * Returns HTTP 200 { ok: true } immediately without external network dependencies.
    */
@@ -23,31 +23,48 @@ export class HealthController {
     return { ok: true };
   }
 
+  @Get('live')
+  @HttpCode(HttpStatus.OK)
+  live() {
+    return this.health();
+  }
+
   /**
    * Readiness Probe: GET /ready
    * Signals whether the service is ready to accept user ingress traffic.
-   * Verifies critical backing dependencies (PostgreSQL pool and Redis broker).
-   * Returns HTTP 200 when ready, HTTP 503 when degraded or dependencies are unreachable.
+   * Verifies critical backing dependencies (PostgreSQL pool and Redis broker)
+   * with short, aggressive fail-fast timeouts to prevent probe stall cascades.
+   * Returns HTTP 200 when all dependencies are ready, HTTP 503 when degraded.
    */
   @Get('ready')
   async ready(@Res({ passthrough: true }) res: HttpResponseLike) {
-    const isDbReady = await this.checkDb();
-    const isRedisReady = await this.checkRedis();
+    const checks: Record<string, string | number> = {};
+    let ready = true;
 
-    if (isDbReady && isRedisReady) {
-      res.status(HttpStatus.OK);
-      return {
-        ok: true,
-        status: 'ready',
-        db: 'ok',
-        redis: 'ok',
-      };
+    const isDbReady = await this.checkDb();
+    if (isDbReady) {
+      checks.database = 'connected';
+    } else {
+      checks.database = 'disconnected';
+      ready = false;
     }
 
-    res.status(HttpStatus.SERVICE_UNAVAILABLE);
+    const isRedisReady = await this.checkRedis();
+    if (isRedisReady) {
+      checks.cache = 'connected';
+    } else {
+      checks.cache = 'disconnected';
+      ready = false;
+    }
+
+    checks.uptime_seconds = Math.floor(process.uptime());
+
+    const status = ready ? HttpStatus.OK : HttpStatus.SERVICE_UNAVAILABLE;
+    res.status(status);
     return {
-      ok: false,
-      status: 'unready',
+      ok: ready,
+      checks,
+      status: ready ? 'ready' : 'unready',
       db: isDbReady ? 'ok' : 'unreachable',
       redis: isRedisReady ? 'ok' : 'unreachable',
     };

@@ -39,12 +39,21 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     }
   }
 
-  async ping(): Promise<boolean> {
+  async ping(timeoutMs = 2000): Promise<boolean> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     try {
-      await this.$queryRaw`SELECT 1`;
-      return true;
+      return await Promise.race([
+        this.$queryRaw`SELECT 1`.then(() => true),
+        new Promise<boolean>((_, reject) => {
+          timer = setTimeout(() => reject(new Error('DB ping timeout')), timeoutMs);
+        }),
+      ]);
     } catch {
       return false;
+    } finally {
+      if (timer) {
+        clearTimeout(timer);
+      }
     }
   }
 }
