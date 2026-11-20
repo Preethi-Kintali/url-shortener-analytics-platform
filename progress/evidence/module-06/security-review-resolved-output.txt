@@ -1,0 +1,31 @@
+================================================================================
+MODULE 06 STEP 6: VERIFY BREAK SCENARIOS ARE RESOLVED
+Timestamp: 2026-11-18T17:23:02.820Z
+Demonstrating resolution of all 5 BREAK failure scenarios
+================================================================================
+
+--- SCENARIO 1 RESOLUTION: Audit Middleware Route Classification ---
+[VERIFY] comment logs count: 1, task logs count: 0
+[RESOLVED] Scenario 1: Comment operation correctly classified as resourceType "comment" with commentId "cmt_999".
+
+--- SCENARIO 2 RESOLUTION: AuditService.query() Action Filter ---
+[VERIFY] deleteActionQuery.length: 1, actions: delete
+[RESOLVED] Scenario 2: query() now strictly filters by action, returning only the delete entry.
+
+--- SCENARIO 3 RESOLUTION: Mention Deduplication ---
+[VERIFY] Tokens parsed: 2, notifiedCount: 1, actual sent: 1
+[RESOLVED] Scenario 3: Duplicate mentions deduplicated to exactly 1 notification.
+
+--- SCENARIO 4 RESOLUTION: Notification Audit Integration ---
+[VERIFY] Audit records for resourceType 'notification': 1
+[RESOLVED] Scenario 4: mention.notified events captured by AuditService as resourceType "notification".
+
+--- SCENARIO 5 RESOLUTION: Tenant Isolation & Mandatory Authorization in getComments() ---
+[VERIFY] Omitted caller argument threw UNAUTHORIZED: true
+[VERIFY] Cross-tenant read by Alice threw FORBIDDEN: true
+[VERIFY] Authorized member Charlie retrieved comments: true
+[RESOLVED] Scenario 5: getComments() mandates callerUserId and enforces team boundary (no bypass possible).
+
+================================================================================
+RESOLUTION SUMMARY: 5 of 5 BREAK SCENARIOS RESOLVED
+================================================================================

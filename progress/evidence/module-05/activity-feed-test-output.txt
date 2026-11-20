@@ -1,0 +1,61 @@
+================================================================================
+MODULE 05 STEP 4: VERIFY — REAL-TIME ACTIVITY FEED FULL REGRESSION SUITE
+Timestamp: 2026-11-18T16:19:16.705Z
+Target Component: ActivityFeedGateway & ActivityFeedService
+Strategy: Option B (Restart-Early)
+================================================================================
+
+--- SECTION 1: Handshake Authentication & Failure Modes ---
+[PASS] Valid JWT establishes socket connection — Principal: usr_alice
+[PASS] Active client count incremented
+[PASS] Missing token rejects handshake with close code 4001
+[PASS] Missing token returns UNAUTHORIZED error envelope
+[PASS] Malformed auth header rejected with close code 4001
+[PASS] Expired JWT rejected with close code 4001
+[PASS] Expired JWT returns informative error payload
+
+--- SECTION 2: Team-Scoped Channel Authorization & Tenant Isolation ---
+[PASS] Alice successfully authorized for team_alpha channel
+[PASS] Alice denied from team_beta with FORBIDDEN
+[PASS] Client not added to team_beta subscription set
+[PASS] Client receives FORBIDDEN error event
+[PASS] Unauthenticated client join rejected
+[PASS] Duplicate join is idempotent and does not create duplicate subscriber
+[PASS] Team subscriber count remains exactly 1
+
+--- SECTION 3: Multi-Client Concurrency, Tenant Isolation & Monotonic Ordering ---
+[PASS] Both Team Alpha concurrent subscribers received all 3 events
+[PASS] Tenant Isolation: Team Beta subscriber received 0 events from Team Alpha
+[PASS] Events delivered in strictly monotonic sequence (1 -> 2 -> 3)
+
+--- SECTION 4: Disconnection Lifecycle & Heartbeat Sweep ---
+[PASS] Client heartbeat acknowledged with pong timestamp
+[PASS] Active clients decremented upon graceful disconnect
+[PASS] Subscriber removed from feed service upon disconnect
+[PASS] Heartbeat monitor automatically swept 1 zombie client
+[PASS] Zombie socket terminated with timeout close code 4008
+[PASS] Gateway active client count reflects zombie sweep
+
+--- SECTION 5: Reconnection, Event Replay & Ring Buffer Limits ---
+[PASS] Replay returned 3 missed events (seq 2, 3, 4)
+[PASS] Replay indicates full history intact (historyTruncated: false)
+[PASS] Replayed events delivered in strict chronological order
+[PASS] Event ring buffer capped at maximum 50 events
+[PASS] Buffer overrun detected: historyTruncated is true when requested sequence is evicted
+[PASS] Returned all remaining 50 buffered events
+
+--- SECTION 6: Data Sanitization & Deep Secret Redaction ---
+[PASS] Whitelisted top-level fields preserved
+[PASS] Nested secret stripped
+[PASS] Nested password hash stripped
+[PASS] Nested array in safe object preserved
+[PASS] Deeply nested API key in array object stripped
+[PASS] Non-sensitive sibling in array object preserved
+[PASS] Safe array object intact
+
+--- SECTION 7: Malformed Event Validation ---
+[PASS] Publishing event with missing teamId throws error
+
+================================================================================
+SUMMARY: 37 of 37 technical assertions PASSED
+================================================================================

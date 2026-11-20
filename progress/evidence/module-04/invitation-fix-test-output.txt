@@ -1,0 +1,51 @@
+================================================================================
+UPSK MODULE 04 — STEP 6: FIX (IDOR REMEDIATION & REGRESSION TEST SUITE)
+Timestamp: 2026-11-18T19:00:00.532Z
+Audited Service: RemediatedInvitationsService (NestJS Component)
+Audited Controller: RemediatedInvitationsController (POST /teams/:teamId/invitations)
+Target Resource: Team Alpha (team_alpha_01)
+================================================================================
+
+--- TEST 1: Unauthenticated User (Missing Principal) ---
+[PASS] Unauthenticated request throws UnauthorizedException (HTTP 401) — Status: 401, Message: "Authenticated principal_id is required"
+[PASS] Side effect check: 0 invitations created in database on 401
+[PASS] Side effect check: 0 emails dispatched on 401
+
+--- TEST 2: Authenticated Non-Member (Cross-Tenant Intrusion Attempt) ---
+[PASS] Authenticated non-member is blocked with ForbiddenException (HTTP 403) — Status: 403, Message: "Forbidden: You do not have administrative permission to invite members to this team"
+[PASS] Side effect check: 0 invitations created in database on 403 (Non-member)
+[PASS] Side effect check: 0 emails dispatched on 403 (Non-member)
+
+--- TEST 3: Authenticated Ordinary Team Member (Privilege Escalation Attempt) ---
+[PASS] Ordinary member (role MEMBER) is blocked with ForbiddenException (HTTP 403) — Status: 403, Message: "Forbidden: You do not have administrative permission to invite members to this team"
+[PASS] Side effect check: 0 invitations created in database on 403 (Member)
+[PASS] Side effect check: 0 emails dispatched on 403 (Member)
+
+--- TEST 4: Authenticated Team Administrator (Legitimate Admin Access) ---
+[PASS] Team Admin successfully issues invitation (HTTP 201 Created) — id=inv_1795028400551_3648, email=dev-lead@core.io
+[PASS] Side effect check: 1 invitation persisted in database
+[PASS] Side effect check: 1 email dispatched to invitee
+[PASS] Email payload verified: correct recipient and team context
+
+--- TEST 5: Authenticated Team Owner (Legitimate Owner Access) ---
+[PASS] Team Owner successfully issues invitation (HTTP 201 Created) — id=inv_1795028400555_1371, email=director-eng@core.io
+[PASS] Side effect check: 2 total invitations in database
+[PASS] Side effect check: 2 total emails dispatched
+
+--- TEST 6: Conflict on Existing Team Member ---
+[PASS] Inviting existing team member rejected with ConflictException (HTTP 409) — Status: 409, Message: "User with email 'alice@core.io' is already a member of this team"
+[PASS] Side effect check: No new record created on 409 conflict
+[PASS] Side effect check: No email sent on 409 conflict
+
+--- TEST 7: Conflict on Duplicate Active Invitation ---
+[PASS] Duplicate pending invitation rejected with ConflictException (HTTP 409) — Status: 409, Message: "An active invitation is already pending for 'dev-lead@core.io'"
+
+--- TEST 8: Malformed Email Input ---
+[PASS] Malformed email rejected with BadRequestException (HTTP 400) — Status: 400, Message: "Invalid email address format"
+
+--- TEST 9: Non-Existent Team ID ---
+[PASS] Non-existent team rejected with NotFoundException (HTTP 404) — Status: 404, Message: "Team with ID 'non_existent_team_404' not found"
+
+================================================================================
+SUMMARY: 22 of 22 assertions PASSED
+================================================================================

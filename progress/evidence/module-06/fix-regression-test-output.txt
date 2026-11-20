@@ -1,0 +1,47 @@
+================================================================================
+MODULE 06 STEP 6: FIX — CLOSING THE INTEGRATION GAP REGRESSION SUITE
+Timestamp: 2026-11-18T18:59:58.065Z
+Evaluating fixes for all 5 demonstrated defects & integration contracts
+================================================================================
+
+--- SECTION 1: Fix 1 — Audit Resource Classification & Middleware Routing ---
+[PASS] Fix 1.1: Nested comment route recorded as resourceType comment
+[PASS] Fix 1.2: resourceId is comment ID (cmt_555), not taskId
+[PASS] Fix 1.3: taskId preserved in audit metadata
+[PASS] Fix 1.4: Base task route recorded as resourceType task
+[PASS] Fix 1.5: Task resourceId matches tsk_300
+
+--- SECTION 2: Fix 2 — Audit Query Filtering by Action & Combinations ---
+[PASS] Fix 2.1: query({ action: "delete" }) returns exactly 1 delete entry
+[PASS] Fix 2.2: Delete record matches cmt_1
+[PASS] Fix 2.3: Combined filter (comment + create + alice) returns 1 entry
+[PASS] Fix 2.4: Matches cmt_1 created by Alice
+[PASS] Fix 2.5: query({ action: "create" }) returns 3 total create records
+
+--- SECTION 3: Fix 3 — Mention Deduplication by userId ---
+[PASS] Fix 3.1: MentionParser extracted 2 tokens for duplicate @bob
+[PASS] Fix 3.2: notify() deduplicated recipient to 1 notification
+[PASS] Fix 3.3: Notification store received exactly 1 message
+[PASS] Fix 3.4: Recipient is usr_bob
+[PASS] Fix 3.5: Distinct users (@bob, @alice) produce 2 notifications
+[PASS] Fix 3.6: Self-mention still filtered out
+
+--- SECTION 4: Fix 4 — Notification Audit Integration ---
+[PASS] Fix 4.1: mention.notified captured by AuditService
+[PASS] Fix 4.2: Audit action is create
+[PASS] Fix 4.3: Actor attributed to sender (usr_alice)
+[PASS] Fix 4.4: mentionedUserId preserved in metadata
+
+--- SECTION 5: Fix 5 — Tenant Authorization in getComments() ---
+[PASS] Fix 5.1: Alpha comment created
+[PASS] Fix 5.1: Authorized team member (usr_bob) retrieves comments
+[PASS] Fix 5.2: Non-member/cross-team caller (usr_charlie) blocked with FORBIDDEN
+[PASS] Fix 5.3: Omitted callerUserId completely blocked with UNAUTHORIZED (no bypass)
+[PASS] Fix 5.4: Explicit null callerUserId blocked with UNAUTHORIZED
+[PASS] Fix 5.5: Anonymous caller blocked with UNAUTHORIZED
+[PASS] Fix 5.6: Cross-team access (Alice accessing Team Beta task) blocked with FORBIDDEN
+[PASS] Fix 5.7: Non-existent task throws NOT_FOUND
+
+================================================================================
+REGRESSION SUITE SUMMARY: 28 PASSED, 0 FAILED, 28 TOTAL
+================================================================================

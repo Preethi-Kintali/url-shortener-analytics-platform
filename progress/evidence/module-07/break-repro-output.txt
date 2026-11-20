@@ -1,0 +1,38 @@
+================================================================================
+MODULE 07 STEP 5: BREAK — THE PRIVILEGE ESCALATION REPRODUCTION
+Timestamp: 2026-11-18T18:21:07.054Z
+Scenario: Viewer Self-Elevation via Vulnerable PUT /teams/:id/members/:uid
+================================================================================
+
+--- PART 1: Forensic Investigation & Exploit Path Trace ---
+[STATE 0] Initial Viewer Record: teamId=team_alpha, userId=usr_viewer, role=VIEWER
+[PASS] Trace Step 1: Initial state confirms usr_viewer has lowest permission role VIEWER
+[ATTACK INPUT] Attacker (usr_viewer) dispatches:
+  Route:  PUT /teams/team_alpha/members/usr_viewer
+  Caller: usr_viewer (Role: VIEWER)
+  Target: usr_viewer (Self-Target)
+  Body:   {"role":"admin"}
+[PASS] Trace Step 2: Vulnerable controller returns HTTP 200 OK (Bypass of Admin Check)
+[STATE 1] Posterior Viewer Record in Store: role=admin
+[PASS] Trace Step 3: Persistence store reflects usr_viewer role mutated from VIEWER to admin
+[PASS] Trace Step 4: Newly escalated usr_viewer can now update other members
+
+--- PART 2: Composite Exploit Variations on Vulnerable Baseline ---
+[PASS] Exploit Variation 2.1: Viewer injects arbitrary role "superadmin"
+[PASS] Exploit Variation 2.2: Viewer injects arbitrary role "owner"
+[PASS] Exploit Variation 2.3: Viewer elevates another ordinary member to admin
+
+--- PART 3: Verifying Remediated Implementation Fails Closed ---
+[PASS] Remediation Check 3.1: Viewer self-elevation is blocked by service with 403 FORBIDDEN
+[PASS] Remediation Check 3.2: Viewer role remains strictly VIEWER in store after attack
+[PASS] Remediation Check 3.3: HTTP controller returns HTTP 403 with standard error envelope
+[PASS] Remediation Check 3.4: Legitimate ADMIN can still update member roles to valid enums
+[PASS] Remediation Check 3.5: Legitimate ADMIN cannot assign unvalidated role "superadmin" (400)
+
+--- PART 4: Boundary Analysis & Cross-Tenant Isolation ---
+[PASS] Boundary Check 4.1: Cross-tenant attacker (Team Beta) cannot access Team Alpha (403)
+[PASS] Boundary Check 4.2: Unauthenticated attacker cannot modify roles (401)
+
+================================================================================
+TEST SUITE RESULTS: 14 PASSED, 0 FAILED, 14 TOTAL
+================================================================================

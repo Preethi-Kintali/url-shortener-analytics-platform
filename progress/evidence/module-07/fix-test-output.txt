@@ -1,0 +1,40 @@
+================================================================================
+MODULE 07 STEP 6: FIX — TEAM MEMBER ROLE VERIFICATION SUITE
+Timestamp: 2026-11-18T18:59:57.816Z
+Evaluating 6 Security Constraints and 13 Official Acceptance Tests
+================================================================================
+
+--- PART 1: The 13 Official Upsk Step 6 Acceptance Tests ---
+[PASS] Test 01: Viewer tries to update own role to admin: 403
+[PASS] Test 02: Viewer tries to update another member's role: 403
+[PASS] Test 03: Member tries to update own role to admin: 403
+[PASS] Test 04: Member tries to update another member's role: 403
+[PASS] Test 05: Admin updates a viewer to member: 200
+[PASS] Test 06: Admin updates a member to viewer: 200
+[PASS] Test 07: Admin tries to promote member to owner: 403
+[PASS] Test 08: Admin tries to update own role: 403
+[PASS] Test 09: Owner updates a member to admin: 200
+[PASS] Test 10: Owner promotes a member to owner: 200
+[PASS] Test 11: Owner tries to update own role: 403
+[PASS] Test 12: Any user sends role value "superadmin": 400
+[PASS] Test 13: Any user sends role value "": 400
+
+--- PART 2: Security Boundaries, Audit Logging & Edge Cases ---
+[PASS] Test 14: Admin cannot demote team owner: 403
+[PASS] Test 15: Non-existent team rejected with 404
+[PASS] Test 16: Non-existent target user rejected with 404
+[PASS] Test 17: Cross-tenant caller rejected with 403
+[PASS] Test 18: Unauthenticated caller rejected with 401
+[PASS] Test 19: Anonymous caller rejected with 401
+[PASS] Test 20: Malformed non-string role rejected with 400
+[PASS] Test 21: Audit logging captures teamId, targetUserId, oldRole, newRole, requestingUserId
+
+--- PART 3: Controller HTTP Integration & Envelope Verification ---
+[PASS] Test 22: Controller maps successful update to HTTP 200 with JSON body
+[PASS] Test 23: Controller maps unauthorized request to HTTP 403 SafeErrorEnvelope
+[PASS] Test 24: Controller maps invalid role to HTTP 400 SafeErrorEnvelope
+[PASS] Test 25: Controller maps missing caller identity to HTTP 401 SafeErrorEnvelope
+
+================================================================================
+TEST SUITE RESULTS: 25 PASSED, 0 FAILED, 25 TOTAL
+================================================================================

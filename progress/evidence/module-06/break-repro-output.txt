@@ -1,0 +1,46 @@
+================================================================================
+MODULE 06 STEP 5: BREAK — REPRODUCIBLE FAILURE SCENARIOS
+Timestamp: 2026-11-18T17:05:56.030Z
+Objective: Reproduce Interface Mismatch, Middleware Collision & Integration Defects
+================================================================================
+
+--- SCENARIO 1: Official Course BREAK — The Interface Mismatch ---
+Context: Agent 1 emits comment.created to EventBus.
+Agent 3 uses HTTP middleware on routes mounted at /tasks/:taskId/comments.
+[REPRO] Query for resourceType: 'comment' in audit log: count = 0
+[REPRO] Query for resourceType: 'task' in audit log: count = 1
+[REPRO] Misclassified Entry: action=create, resourceType=task, resourceId=tsk_100
+[OUTCOME] Scenario 1 Reproduced: CONFIRMED
+Failure Explanation: The audit middleware misclassified a comment creation as a task action because of route prefix inspection. Meanwhile, Agent 1 emitted comment.created into an empty EventBus with 0 subscribers.
+
+--- SCENARIO 2: AuditService.query() Action Filter Omission ---
+[REPRO] Expected deleteActionQuery.length: 1 (only delete action)
+[REPRO] Actual deleteActionQuery.length: 2
+[REPRO] Returned Actions: create, delete
+[OUTCOME] Scenario 2 Reproduced: CONFIRMED
+Failure Explanation: AuditService.query() lacks a check for log.action, returning both create and delete logs when filtering by delete.
+
+--- SCENARIO 3: Notification Duplication via Duplicate Mentions ---
+[REPRO] Parsed mention tokens count: 2
+[REPRO] notify() reported notifiedCount: 2
+[REPRO] Actual notifications sent to store: 2
+[REPRO] Recipients: usr_bob, usr_bob
+[OUTCOME] Scenario 3 Reproduced: CONFIRMED
+Failure Explanation: MentionNotificationService iterates parsed mentions without deduplicating by userId, causing duplicate notifications for repeated mentions in a single comment.
+
+--- SCENARIO 4: Cross-Agent Event Gap on mention.notified ---
+[REPRO] Audit records for resourceType 'notification': 0
+[REPRO] Total audit records captured on mention event: 0
+[OUTCOME] Scenario 4 Reproduced: CONFIRMED
+Failure Explanation: Agent 2 emits mention.notified, but Agent 3 only subscribes to *.created, *.updated, *.deleted. The notification lifecycle is completely invisible to the audit log.
+
+--- SCENARIO 5: Tenant Isolation Bypass in getComments() ---
+[REPRO] Created Team Beta comment: cmt_1795021556069_447 on task tsk_200
+[REPRO] Comments retrieved from tsk_200 by unverified caller: 1
+[REPRO] Leaked comment body: "Team Beta confidential roadmap" by author: usr_charlie
+[OUTCOME] Scenario 5 Reproduced: CONFIRMED
+Failure Explanation: comments.service.js does not verify caller team membership in getComments(), exposing task discussions across tenant boundaries if not guarded by external controllers.
+
+================================================================================
+REPRODUCTION SUITE COMPLETE: ALL 5 BREAK SCENARIOS CONFIRMED WITH REAL OUTPUTS
+================================================================================

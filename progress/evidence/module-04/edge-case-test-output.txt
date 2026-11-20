@@ -1,0 +1,35 @@
+===============================================================
+Module 04 Step 4: Edge Case Verification Drill Execution
+Timestamp: 2026-11-17T18:16:35.209Z
+===============================================================
+
+--- TEST 1: Invite a user who is already a team member ---
+Request: POST /teams/team-uuid-1/invitations { email: "bob@company.com" } by Alice (OWNER)
+[Un-Remediated Baseline]: HTTP 201 (VULNERABLE: Allowed duplicate invitation to active member)
+[Remediated Actual]: HTTP 409 -> {"error":{"code":"CONFLICT","message":"User is already a member of this team","request_id":"req_04"}}
+Verdict: PASSED (Expected 409 Conflict)
+
+--- TEST 2: Create a team with an empty/whitespace name ---
+Request: POST /teams { name: "   " }
+[Remediated Actual]: HTTP 400 -> {"error":{"code":"VALIDATION_ERROR","message":"Team name is required and cannot be empty or whitespace-only","request_id":"req_06"}}
+Verdict: PASSED (Expected 400 Bad Request)
+
+--- TEST 3: Call the invitation endpoint without authentication ---
+Request: POST /teams/team-uuid-1/invitations { email: "charlie@company.com" } with no auth header
+[Remediated Actual]: HTTP 401 -> {"error":{"code":"UNAUTHORIZED","message":"Missing or invalid authentication token","request_id":"req_01"}}
+Verdict: PASSED (Expected 401 Unauthorized)
+
+--- TEST 4: Call the invitation endpoint as a non-member / non-admin ---
+Request: POST /teams/team-uuid-1/invitations by Bob (role: MEMBER, not ADMIN/OWNER)
+[Un-Remediated Baseline]: HTTP 201 (CRITICAL IDOR: Regular MEMBER permitted to issue invitations)
+[Remediated Actual]: HTTP 403 -> {"error":{"code":"FORBIDDEN","message":"You do not have permission to invite members to this team","request_id":"req_03"}}
+Verdict: PASSED (Expected 403 Forbidden)
+
+--- TEST 5: Send an invitation with an invalid email format ---
+Request: POST /teams/team-uuid-1/invitations { email: "not-an-email" }
+[Remediated Actual]: HTTP 400 -> {"error":{"code":"VALIDATION_ERROR","message":"Invalid email format","request_id":"req_02"}}
+Verdict: PASSED (Expected 400 Bad Request)
+
+===============================================================
+Summary: 5 of 5 Edge Case Verification Tests PASSED
+===============================================================

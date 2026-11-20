@@ -1,0 +1,77 @@
+================================================================================
+UPSK MODULE 04 — STEP 5: BREAK (ADVERSARIAL IDOR INVESTIGATION)
+Timestamp: 2026-11-17T18:23:14.086Z
+Target Resource: Team Alpha (ID: team-alpha-99)
+Audited Endpoint: POST /teams/:teamId/invitations
+================================================================================
+
+--------------------------------------------------------------------------------
+PHASE 1: EXECUTION AGAINST AI-GENERATED BASELINE HANDLER
+--------------------------------------------------------------------------------
+
+Testing Boundary: [1. Unauthenticated User]
+  Caller: Anonymous Actor
+  Target Team: team-alpha-99
+  Invitee: intruder@external.io
+  Actual HTTP Status: 401
+  Response Payload: {"error":"Unauthorized"}
+  Database Side Effect: No side effect
+  >>> Baseline behavior matches expectation (Status 401).
+
+Testing Boundary: [2. Authenticated Non-Member (Cross-Tenant Intrusion)]
+  Caller: Dave (External user from Beta Mobile Team)
+  Target Team: team-alpha-99
+  Invitee: rogue-invitee@attacker.com
+  Actual HTTP Status: 201
+  Response Payload: {"data":{"id":"inv_1794939794106_92","teamId":"team-alpha-99","email":"rogue-invitee@attacker.com","invitedBy":"usr_dave_outsider","status":"PENDING","createdAt":"2026-11-17T18:23:14.106Z"},"message":"Invitation sent successfully"}
+  Database Side Effect: PERSISTED INVITATION RECORD
+  >>> ADVERSARIAL FINDING: EXPLOIT CONFIRMED! HTTP 201 returned instead of 403 Forbidden.
+  >>> Threat: CRITICAL IDOR: Valid token for unrelated user grants write access to Team Alpha.
+
+Testing Boundary: [3. Authenticated Ordinary Team Member (Privilege Escalation)]
+  Caller: Carol (Regular team member, role: MEMBER)
+  Target Team: team-alpha-99
+  Invitee: unauthorized-colleague@alpha.io
+  Actual HTTP Status: 201
+  Response Payload: {"data":{"id":"inv_1794939794112_125","teamId":"team-alpha-99","email":"unauthorized-colleague@alpha.io","invitedBy":"usr_carol_member","status":"PENDING","createdAt":"2026-11-17T18:23:14.112Z"},"message":"Invitation sent successfully"}
+  Database Side Effect: PERSISTED INVITATION RECORD
+  >>> ADVERSARIAL FINDING: EXPLOIT CONFIRMED! HTTP 201 returned instead of 403 Forbidden.
+  >>> Threat: PRIVILEGE ESCALATION: Role MEMBER cannot invite members, but baseline allows it.
+
+Testing Boundary: [4. Authenticated Team Administrator (Legitimate Admin)]
+  Caller: Bob (Team Admin, role: ADMIN)
+  Target Team: team-alpha-99
+  Invitee: new-engineer@alpha.io
+  Actual HTTP Status: 201
+  Response Payload: {"data":{"id":"inv_1794939794117_918","teamId":"team-alpha-99","email":"new-engineer@alpha.io","invitedBy":"usr_bob_admin","status":"PENDING","createdAt":"2026-11-17T18:23:14.117Z"},"message":"Invitation sent successfully"}
+  Database Side Effect: PERSISTED INVITATION RECORD
+  >>> Baseline behavior matches expectation (Status 201).
+
+Testing Boundary: [5. Authenticated Team Owner (Legitimate Owner)]
+  Caller: Alice (Team Owner, role: OWNER)
+  Target Team: team-alpha-99
+  Invitee: director@alpha.io
+  Actual HTTP Status: 201
+  Response Payload: {"data":{"id":"inv_1794939794123_149","teamId":"team-alpha-99","email":"director@alpha.io","invitedBy":"usr_alice_owner","status":"PENDING","createdAt":"2026-11-17T18:23:14.123Z"},"message":"Invitation sent successfully"}
+  Database Side Effect: PERSISTED INVITATION RECORD
+  >>> Baseline behavior matches expectation (Status 201).
+
+--------------------------------------------------------------------------------
+PHASE 2: COMPARATIVE MATRIX (BASELINE VULNERABLE vs SECURE SPECIFICATION)
+--------------------------------------------------------------------------------
+
+| Boundary | Persona | Baseline Status | Secure Status | Vulnerability Severity |
+|:---|:---|:---:|:---:|:---|
+| 1. Unauthenticated User | Anonymous Actor | HTTP 401 | HTTP 401 | COMPLIANT |
+| 2. Authenticated Non-Member (Cross-Tenant Intrusion) | Dave (External user from Beta Mobile Team) | HTTP 201 | HTTP 403 | EXPLOITABLE: CRITICAL (IDOR Bypass) |
+| 3. Authenticated Ordinary Team Member (Privilege Escalation) | Carol (Regular team member, role: MEMBER) | HTTP 201 | HTTP 403 | EXPLOITABLE: HIGH (Privilege Escalation) |
+| 4. Authenticated Team Administrator (Legitimate Admin) | Bob (Team Admin, role: ADMIN) | HTTP 201 | HTTP 201 | COMPLIANT |
+| 5. Authenticated Team Owner (Legitimate Owner) | Alice (Team Owner, role: OWNER) | HTTP 201 | HTTP 201 | COMPLIANT |
+
+================================================================================
+BREAK INVESTIGATION CONCLUSION:
+The AI-generated endpoint validates identity (authentication) but completely fails
+to enforce authorization (ownership and role). Any authenticated user possessing a
+valid JWT token can tamper with :teamId in the URL route and create unauthorized
+invitations to teams they do not own or administer.
+================================================================================

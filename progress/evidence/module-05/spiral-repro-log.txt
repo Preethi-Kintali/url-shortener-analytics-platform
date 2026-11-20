@@ -1,0 +1,33 @@
+================================================================================
+MODULE 05 STEP 5: BREAK — REPRODUCING THE ITERATION SPIRAL
+Timestamp: 2026-11-18T16:12:43.606Z
+Component: ActivityFeedGateway & ActivityFeedService (Round 3 Implementation)
+Target Defect: Silent WebSocket Disconnection & Heartbeat Event Stream Collision
+================================================================================
+
+--- TEST 1: Reproducing Silent WebSocket Disconnection After First Event ---
+[STATE] Client 'client_desktop_user' connected: connected=true, isAlive=true
+[EVENT_DELIVERY] First event delivered: count=1, seq=1
+
+[HEARTBEAT_CYCLE_1] Server executes first sweep...
+[SWEEP_MARK] Client 'client_desktop_user' marked isAlive=false for next cycle
+[STATE] After Cycle 1: client.connected=true, client.isAlive=false
+
+[HEARTBEAT_CYCLE_2] Server executes second sweep...
+[SWEEP_EVICT] Client 'client_desktop_user' evicted: isAlive=false, idleMs=6
+
+[REPRODUCTION_EVIDENCE]:
+- Client connected state: false
+- Disconnect close code: 4008
+- Total evicted clients: 1
+[CONFIRMED_DEFECT_1] SILENT DISCONNECT REPRODUCED: Active listener was terminated by heartbeat sweep despite active event flow!
+
+--- TEST 2: Reproducing Reconnection Replay Out-of-Order Race Condition ---
+[RECONNECT] Client reconnecting with lastSequenceNumber = 1 (expecting seq 2, 3)...
+[RACE_SIMULATION] Simulating concurrent event published during replay phase...
+[RECEIVED_SEQUENCE] Observed sequence numbers at client: [4, 2, 3, 4]
+[CONFIRMED_DEFECT_2] OUT-OF-ORDER REPLAY REPRODUCED: Live event (seq 4) arrived BEFORE replayed events (seq 2, 3)!
+
+================================================================================
+REPRODUCTION COMPLETE: Both regressions empirically demonstrated.
+================================================================================

@@ -1,0 +1,43 @@
+========================================================================
+MODULE 08 STEP 5: BREAK — THE CI FAILURE REPRODUCTION
+Timestamp: 2026-11-18T18:56:23.196Z
+Simulating "Works on My Machine vs Fails in CI" Environment Divergence
+========================================================================
+
+------------------------------------------------------------------------
+ENVIRONMENT A: LOCAL DEVELOPMENT (Dirty/Pre-Seeded State)
+------------------------------------------------------------------------
+[LOCAL SETUP] Pre-seeding existing database entities from dev session...
+[LOCAL SETUP] Existing team present: id='team_1795028183202_3p4n8', owner='usr_seeded_alice'
+
+[RUNNING AI-GENERATED TEST] Executing Test: "Invite Collaborator and Post Comment"
+[PASS] Invitation created successfully: token=inv_tok_595eb80fa42699d6a5294f1e1f7d4ed3
+[PASS] Bob accepted invitation
+[PASS] Task created: id=tsk_1795028183205_h9vt
+[PASS] Comment posted: id=cmt_1795028183206_ja1k
+
+>>> LOCAL DEV TEST RESULT: ALL 4 STEPS PASSED (GREEN) <<<
+Developer conclusion: "The feature and tests are completely working!"
+
+------------------------------------------------------------------------
+ENVIRONMENT B: CI PIPELINE (Pristine Ephemeral Empty Database)
+------------------------------------------------------------------------
+[CI SETUP] Pristine container database initialized. Pre-existing records: 0
+
+[RUNNING AI-GENERATED TEST IN CI] Executing Test: "Invite Collaborator and Post Comment"
+[CI EXECUTION] Attempting to invite collaborator to assumed team: 'team_seeded_core_101'...
+[CI PIPELINE FAILURE - RED] Error caught during integration test:
+  Status Code: 404
+  Error Code:  NOT_FOUND
+  Message:     Team 'team_seeded_core_101' not found
+
+>>> CI PIPELINE RESULT: BUILD FAILED (EXIT CODE 1) <<<
+Root Cause: Integration test made an ungrounded assumption of pre-existing database fixtures.
+The test did not hermetically create its own prerequisites in a deterministic lifecycle.
+
+========================================================================
+SUMMARY OF DIVERGENCE:
+  Local Environment: PASSED (Green)
+  CI Environment:    FAILED (Red)
+Diagnosis: AI test generator leaked environmental assumptions into integration suite.
+========================================================================

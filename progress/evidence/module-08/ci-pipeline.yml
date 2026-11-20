@@ -1,0 +1,88 @@
+name: Team Collaboration Production CI Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-and-test:
+    name: Hermetic Validation, Lint & Multi-Tenant Regression
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: collaboration_test_db
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_secure_password
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20 LTS
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install pnpm Package Manager
+        uses: pnpm/action-setup@v3
+        with:
+          version: 9
+
+      - name: Install Dependencies (Hermetic Frozen Lockfile)
+        run: pnpm install --frozen-lockfile
+
+      - name: Static Code Analysis & Linting
+        run: pnpm lint
+
+      - name: Typecheck Compilation
+        run: pnpm tsc --noEmit
+
+      - name: Apply Database Migrations (Clean Schema Setup)
+        env:
+          DATABASE_URL: postgresql://postgres:test_secure_password@localhost:5432/collaboration_test_db?schema=public
+        run: |
+          pnpm prisma migrate deploy
+          pnpm prisma generate
+
+      - name: Seed Ephemeral Test Baseline
+        env:
+          DATABASE_URL: postgresql://postgres:test_secure_password@localhost:5432/collaboration_test_db?schema=public
+        run: pnpm prisma db seed
+
+      - name: Execute End-to-End Capstone & Historical Regression Suites
+        env:
+          NODE_ENV: test
+          DATABASE_URL: postgresql://postgres:test_secure_password@localhost:5432/collaboration_test_db?schema=public
+          REDIS_URL: redis://localhost:6379
+        run: node progress/evidence/module-08/run-ci-pipeline.js
+
+      - name: Security & Dependency Vulnerability Audit
+        run: pnpm audit --prod --audit-level=high

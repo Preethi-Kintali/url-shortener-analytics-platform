@@ -1,0 +1,34 @@
+================================================================================
+MODULE 05 STEP 6: FIX — REGRESSION & VERIFICATION TEST SUITE
+Timestamp: 2026-11-18T18:59:58.278Z
+Components: StagedActivityFeedGateway & ActivityFeedService
+Verifying Targeted Fixes for Heartbeat Lifecycle & Replay Ordering
+================================================================================
+
+--- PART 1: Heartbeat Lifecycle & Passive Listener Tests ---
+[PASS] Sweep 1: Zero healthy clients evicted
+[PASS] Sweep 1: Ping frame sent to client
+[PASS] handlePong marks client alive
+[PASS] Sweep 2: Healthy client remains connected across multiple sweeps
+[PASS] Sweep 2: Second ping frame issued
+[PASS] Passive client armed for ping check (isAlive=false)
+[PASS] Events delivered down to passive socket
+[PASS] CRITICAL: Passive event delivery did NOT incorrectly count as heartbeat response
+[PASS] Passive client without Pong was correctly evicted on next sweep cycle
+[PASS] Eviction socket closed with code 4008
+[PASS] Disconnect cleanup swept passive client from team_alpha subscribers
+
+--- PART 2: Reconnection Replay Ordering & Staging Queue Tests ---
+[PASS] handleReconnect succeeded
+[PASS] Concurrent event fired while replay was active
+[REPLAY_SEQS] Received sequence numbers: [1, 2, 3]
+[PASS] Sequence numbers are strictly monotonic with zero out-of-order deliveries
+[PASS] Zero duplicate sequence numbers received during replay and live transition
+[PASS] Concurrent live event was queued in staging buffer and delivered AFTER all historical events
+
+--- PART 3: Team Isolation Preserved ---
+[PASS] Team Beta received zero events from Team Alpha
+
+================================================================================
+SUMMARY: 17 of 17 regression assertions PASSED
+================================================================================

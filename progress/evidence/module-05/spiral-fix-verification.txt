@@ -1,0 +1,28 @@
+================================================================================
+MODULE 05 STEP 6: FIX — DEMONSTRATING SPIRAL REGRESSIONS ARE RESOLVED
+Timestamp: 2026-11-18T16:19:53.542Z
+Component: Fixed ActivityFeedGateway & ActivityFeedService
+Testing Resolved Heartbeat Lifecycle & Concurrent Replay Ordering
+================================================================================
+
+--- TEST 1: Verifying Heartbeat Fix with Healthy Pong Response ---
+[EVENT_DELIVERY] First event delivered: count=1
+
+[SWEEP_CYCLE_1] Server executes first sweep...
+[CLIENT_PONG] Client received ping frame; responding with handlePong
+[SWEEP_CYCLE_1_RESULT] Evicted count: 0, client.connected=true, client.isAlive=true
+
+[SWEEP_CYCLE_2] Server executes second sweep...
+[CLIENT_PONG] Client received ping frame; responding with handlePong
+[SWEEP_CYCLE_2_RESULT] Evicted count: 0, client.connected=true, client.isAlive=true
+[RESOLVED_DEFECT_1] SUCCESS: Healthy client responding to pings remains connected across multiple sweep cycles!
+
+--- TEST 2: Verifying Reconnection Replay Fix with Concurrent Event ---
+[RECONNECT] Client reconnects with lastSequenceNumber = 1 (expecting seq 2, 3)...
+[RACE_SIMULATION] Firing concurrent event published while replay is in progress...
+[RECEIVED_SEQUENCE] Observed sequence numbers at client: [2, 3, 4]
+[RESOLVED_DEFECT_2] SUCCESS: Monotonic chronological ordering preserved! Event 4 queued in staging buffer and delivered AFTER historical events [2, 3]!
+
+================================================================================
+VERIFICATION COMPLETE: Both defects cleanly resolved and verified.
+================================================================================

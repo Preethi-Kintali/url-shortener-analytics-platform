@@ -1,0 +1,36 @@
+================================================================================
+MODULE 07 STEP 4: VERIFY — FIX AND RECHECK REGRESSION SUITE
+Timestamp: 2026-11-18T18:20:41.600Z
+Evaluating SEC-01 (Missing Admin Check) and SEC-02 (Role Input Validation)
+================================================================================
+
+--- PART 1: Demonstrating Baseline Flaw (Pre-Fix Vulnerability) ---
+[PASS] Pre-Fix Flaw 1: Ordinary MEMBER can elevate another member to admin in vulnerable service
+[PASS] Pre-Fix Flaw 2: Vulnerable service accepts arbitrary unvalidated role "superadmin"
+
+--- PART 2: Verifying Remediated TeamMembersService ---
+[PASS] T1.1: Legitimate ADMIN can update member to viewer (200 OK)
+[PASS] T1.2: Legitimate OWNER can update member to admin (200 OK)
+[PASS] T2.1: Ordinary MEMBER is blocked from modifying roles with FORBIDDEN (403)
+[PASS] T2.2: Ordinary MEMBER is blocked from elevating themselves with FORBIDDEN (403)
+[PASS] T2.3: VIEWER is blocked from modifying roles with FORBIDDEN (403)
+[PASS] T2.4: Admin cannot demote team OWNER (403 FORBIDDEN)
+[PASS] T3.1: Cross-team user (usr_charlie from Team Beta) blocked from Team Alpha with FORBIDDEN (403)
+[PASS] T3.2: Member of Team Alpha (usr_admin) blocked from mutating Team Beta with FORBIDDEN (403)
+[PASS] T4.1: Missing callerUserId blocked with UNAUTHORIZED (401)
+[PASS] T4.2: Anonymous caller blocked with UNAUTHORIZED (401)
+[PASS] T5.1: Arbitrary role "superadmin" rejected with BAD_REQUEST (400)
+[PASS] T5.2: Role "owner" rejected with FORBIDDEN (403) when attempted by Admin
+[PASS] T5.3: Empty string role rejected with BAD_REQUEST (400)
+[PASS] T5.4: Non-string role object ({}) rejected with BAD_REQUEST (400)
+[PASS] T5.5: Non-existent target user rejected with NOT_FOUND (404)
+[PASS] T5.6: Non-existent team rejected with NOT_FOUND (404)
+
+--- PART 3: Verifying TeamMembersController HTTP Responses ---
+[PASS] C1.1: HTTP PUT /teams/:id/members/:uid by Admin returns 200 JSON with updated role
+[PASS] C1.2: HTTP PUT by Member returns 403 with standard error envelope
+[PASS] C1.3: HTTP PUT with invalid role returns 400 with standard error envelope
+
+================================================================================
+TEST SUITE RESULTS: 21 PASSED, 0 FAILED, 21 TOTAL
+================================================================================
